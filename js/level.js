@@ -297,7 +297,9 @@ const STAGES = [
         this.ground(0, 9);
         this.water(10, 13);
         this.rect(14, 6, 11, 12, '=');
-        this.mover(9, 11, 2, 'y', 5, 48);
+        /* lift: hangs from the mill chain, top of its run level with the wall top
+           (row 6), bottom of its run 2 tiles above the ground so it can be boarded */
+        this.mover(11, 6, 2, 'y', 5, 48);
         this.flower(12, 5);
         this.stone(15, 5, 3);
         this.enemy('bat', 17, 4);

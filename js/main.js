@@ -1,40 +1,4 @@
-/* MARIGOLD — persistence, boot, main loop, page chrome. */
-
-const Save = {
-  KEY: 'marigold.save.v1',
-  SLOTS: 5,
-  data: {
-    muted: false,
-    unlocked: 1,
-    best: [0, 0, 0, 0, 0],
-    hintSeen: false
-  },
-
-  load() {
-    try {
-      const raw = localStorage.getItem(this.KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          if (typeof parsed.unlocked === 'number') this.data.unlocked = U.clamp(parsed.unlocked, 1, this.SLOTS);
-          if (typeof parsed.muted === 'boolean') this.data.muted = parsed.muted;
-          if (typeof parsed.hintSeen === 'boolean') this.data.hintSeen = parsed.hintSeen;
-          if (Array.isArray(parsed.best)) {
-            for (let i = 0; i < this.SLOTS; i++) {
-              this.data.best[i] = Math.max(0, Number(parsed.best[i]) || 0);
-            }
-          }
-        }
-      }
-    } catch (err) { /* storage may be unavailable under file:// in some browsers */ }
-  },
-
-  write() {
-    try {
-      localStorage.setItem(this.KEY, JSON.stringify(this.data));
-    } catch (err) { /* ignore */ }
-  }
-};
+/* MARIGOLD — boot, main loop, page chrome. */
 
 (function () {
   'use strict';
@@ -44,12 +8,25 @@ const Save = {
   const rotateEl = document.getElementById('rotate');
   const rotateOk = document.getElementById('rotateOk');
   const fsBtn = document.getElementById('fsBtn');
+  const langBtn = document.getElementById('langBtn');
 
   const ctx = canvas.getContext('2d', { alpha: false });
   ctx.imageSmoothingEnabled = false;
 
   Save.load();
   AudioSys.muted = !!Save.data.muted;
+
+  /* language: stored choice wins, otherwise follow the browser */
+  LANG.set(STRINGS[Save.data.lang] ? Save.data.lang : LANG.detect());
+  LANG.applyDom();
+  syncLangBtn();
+
+  function syncLangBtn() {
+    if (!langBtn) return;
+    langBtn.textContent = LANG.SHORT[LANG.current] || 'EN';
+    langBtn.title = (LANG.LABEL[LANG.current] || 'ENGLISH') + ' (G)';
+  }
+  LANG.onChange(syncLangBtn);
 
   Sprites.init();
   Tiles.init();
@@ -58,6 +35,13 @@ const Save = {
   Input.init(canvas);
   Input.bindTouch(document.getElementById('touch'));
   Input.onGesture.push(function () { AudioSys.init(); });
+
+  if (langBtn) {
+    langBtn.addEventListener('click', function () {
+      LANG.toggle();
+      canvas.focus();
+    });
+  }
 
   /* ---------- page chrome ---------- */
 
@@ -176,5 +160,92 @@ const Save = {
   requestAnimationFrame(frame);
 
   /* expose for curious tinkerers and the QA harness */
-  window.MARIGOLD = { Game: Game, Save: Save, AudioSys: AudioSys, Input: Input, Level: Level, STAGES: STAGES };
+  window.MARIGOLD = {
+    Game: Game, Save: Save, AudioSys: AudioSys, Input: Input, Level: Level,
+    STAGES: STAGES, UI: UI, LANG: LANG, PROLOGUE: PROLOGUE,
+    STRINGS: STRINGS, CUTSCENE: CUTSCENE,
+
+    /* QA: look for missing translations and text that would not fit */
+    checkText: function () {
+      const issues = [];
+      const en = STRINGS.en;
+      const codes = Object.keys(STRINGS);
+
+      for (const code of codes) {
+        const table = STRINGS[code];
+        for (const key of Object.keys(en)) {
+          if (!Object.prototype.hasOwnProperty.call(table, key)) issues.push('missing ' + code + ' -> ' + key);
+        }
+        for (const key of Object.keys(table)) {
+          if (!Object.prototype.hasOwnProperty.call(en, key)) issues.push('extra ' + code + ' -> ' + key);
+        }
+      }
+
+      /* keys that are built at runtime still have to exist */
+      const dyn = [];
+      for (const def of STAGES) dyn.push(def.nameKey);
+      for (let i = 1; i <= STAGES.length; i++) {
+        dyn.push('sign.' + i);
+        dyn.push('blurb.' + i);
+      }
+      for (const scene of Object.keys(CUTSCENE)) {
+        for (const b of CUTSCENE[scene]) dyn.push(b.key);
+      }
+      for (const k of ['menu.paceSlow', 'menu.paceNormal', 'menu.paceFast',
+        'menu.revealInstant', 'menu.revealTyped']) dyn.push(k);
+      for (const code of codes) {
+        for (const key of dyn) {
+          if (!Object.prototype.hasOwnProperty.call(STRINGS[code], key)) issues.push('missing ' + code + ' -> ' + key);
+        }
+      }
+
+      /* arrays (the crawl) must line up line for line */
+      for (const key of Object.keys(en)) {
+        if (!Array.isArray(en[key])) continue;
+        for (const code of codes) {
+          const v = STRINGS[code][key];
+          if (!Array.isArray(v) || v.length !== en[key].length) {
+            issues.push('array length ' + code + ' -> ' + key);
+          }
+        }
+      }
+
+      for (const code of codes) {
+        const table = STRINGS[code];
+        for (const key of Object.keys(table)) {
+          const v = table[key];
+          if (typeof v !== 'string') continue;
+
+          /* the dialogue box holds two lines of 54 characters */
+          if (/^(scene|rescue|epilogue)\./.test(key)) {
+            const lines = wrapText(v, 324, 1);
+            if (lines.length > 2) issues.push('overflow ' + code + ' -> ' + key + ' (' + lines.length + ' lines)');
+          }
+
+          /* the stage blurb is centred under the stage name */
+          if (/^blurb\./.test(key) && textWidth(v, 1) > 336) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* a stage name sits on a 65px card */
+          if (/^stage\.\d\.name$/.test(key) && textWidth(v, 1) > 65) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* pause menu rows sit in a 208px button */
+          if (key.indexOf('menu.') === 0) {
+            const probe = v.replace(/\{0\}/, 'XXXXXXXXXX');
+            if (textWidth(probe, 1) > 186) issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* toasts and hints sit in a 340px subtitle box */
+          if (/^(toast|prologue\.skip|hint)\./.test(key) && textWidth(v, 1) > 336) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+        }
+      }
+
+      return { issues: issues, count: issues.length, ok: issues.length === 0 };
+    }
+  };
 })();

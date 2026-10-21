@@ -175,7 +175,7 @@ const AudioSys = {
       const s = this.step % track.lead.length;
       const lead = track.lead[s];
       const bass = track.bass[s];
-      if (lead) this.tone(this.freq(lead), this.next, leadDur, 'square', 0.055);
+      if (lead) this.tone(this.freq(lead), this.next, leadDur, track.leadType || 'square', track.leadVol || 0.055);
       if (bass) this.tone(this.freq(bass), this.next, stepDur * 1.6, 'triangle', 0.085);
       if (track.hat && s % 2 === 0) this.noise(this.next, 0.025, 0.014, 6000);
       this.step++;
@@ -264,6 +264,25 @@ const TRACKS = {
       'F2', 0, 'C3', 0, 'G2', 0, 'D3', 0,
       'A2', 0, 'E3', 0, 'F2', 0, 'C3', 0,
       'G2', 0, 'D3', 0, 'A2', 0, 'E3', 0
+    ]
+  },
+  /* dawn: slow, warm, and a little sad - for the end */
+  dawn: {
+    bpm: 70,
+    hat: false,
+    leadType: 'triangle',
+    leadVol: 0.075,
+    lead: [
+      'C5', 0, 'E5', 'G5', 0, 'E5', 'D5', 0,
+      'A4', 0, 'C5', 'E5', 0, 'D5', 'C5', 0,
+      'F4', 0, 'A4', 'C5', 0, 'A4', 'G4', 0,
+      'E4', 0, 'G4', 'B4', 0, 'C5', 'G4', 0
+    ],
+    bass: [
+      'C3', 0, 0, 0, 'A2', 0, 0, 0,
+      'F2', 0, 0, 0, 'G2', 0, 0, 0,
+      'C3', 0, 0, 0, 'E3', 0, 0, 0,
+      'G2', 0, 0, 0, 'C3', 0, 0, 0
     ]
   }
 };

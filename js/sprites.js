@@ -9,6 +9,7 @@ const Sprites = {
   guard: null,
   shield: null,
   princess: null,
+  princessWeak: null,
   beast: null,
   beastRoar: null,
   marigold: null,
@@ -27,7 +28,8 @@ const Sprites = {
       ],
       jump: this.pair(this.compose(HERO_TOP, HERO_LEGS.jump, 3)),
       fall: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall, 3)),
-      hurt: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall, 3))
+      hurt: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall, 3)),
+      kneel: this.pair(bakeSprite(HERO_KNEEL))
     };
 
     this.imp = [this.pair(bakeSprite(IMP_A)), this.pair(bakeSprite(IMP_B))];
@@ -36,6 +38,7 @@ const Sprites = {
     this.guard = [this.pair(bakeSprite(GUARD)), this.pair(bakeSprite(GUARD2))];
     this.shield = bakeSprite(SHIELD);
     this.princess = bakeSprite(PRINCESS);
+    this.princessWeak = bakeSprite(PRINCESS_WEAK);
     this.beast = bakeSprite(BEAST);
     this.beastRoar = bakeSprite(BEAST_ROAR);
     this.marigold = bakeSprite(MARIGOLD);
@@ -156,6 +159,31 @@ const HERO_LEGS = {
     '.kkkkk...kkkk.'
   ]
 };
+
+/* ---------- hero Finn on one knee: 18 wide, 20 tall.
+   The body drops three rows and the legs fold under. ---------- */
+
+const HERO_KNEEL = [
+  '..................',
+  '..................',
+  '..................',
+  '.......kkkkkk.....',
+  '......kHHHHHHk....',
+  '.....kHHHHHHHHk...',
+  '.....kHSSSSSSHk...',
+  '.....kHSESSESHk...',
+  '.ggg.kHSSSSSSHk...',
+  'gsssgkHSSSSSSHk...',
+  'gsmsgkSSSSSSk.....',
+  'gsssgkrrrrk.......',
+  'gsssgkeeeeeeeek...',
+  'gsmsgkeeeeeeeek...',
+  'gsssgkeeemeeeek...',
+  '.gsg.keeeeeeeek...',
+  '..kddk.kddddk.....',
+  '..kbbk.kbbbbk.....',
+  '..kkkk.kkkkkk.....'
+];
 
 /* ---------- enemies ---------- */
 
@@ -324,6 +352,9 @@ const PRINCESS = [
   '............',
   '............'
 ];
+
+/* the same princess, spent and drained of colour */
+const PRINCESS_WEAK = PRINCESS.map(r => r.replace(/R/g, 'p'));
 
 /* ---------- pickups & props ---------- */
 

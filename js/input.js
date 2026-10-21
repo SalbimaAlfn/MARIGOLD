@@ -3,7 +3,7 @@
 
 const Input = {
   held: { left: false, right: false, up: false, down: false, jump: false, attack: false, shield: false },
-  pressed: { left: false, right: false, up: false, down: false, jump: false, attack: false, shield: false, confirm: false, back: false, mute: false, fullscreen: false },
+  pressed: { left: false, right: false, up: false, down: false, jump: false, attack: false, shield: false, confirm: false, back: false, mute: false, fullscreen: false, language: false, replay: false },
   click: null,
   onGesture: [],
   canvas: null,
@@ -20,7 +20,7 @@ const Input = {
     KeyL: 'shield', KeyQ: 'shield', ShiftLeft: 'shield', ShiftRight: 'shield',
     Enter: 'confirm', NumpadEnter: 'confirm', KeyZ: 'confirm',
     Escape: 'back', KeyP: 'back',
-    KeyM: 'mute', KeyF: 'fullscreen'
+    KeyM: 'mute', KeyF: 'fullscreen', KeyG: 'language', KeyR: 'replay'
   },
 
   PREVENT: ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'NumpadEnter'],

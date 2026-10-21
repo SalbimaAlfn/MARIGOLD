@@ -36,20 +36,14 @@ const Game = {
   introT: 0,
   prologueT: 0,
   prologueDone: false,
+  prologueWait: 0,
   roared: false,
   deadT: 0,
   rescueT: 0,
+  epilogueT: 0,
   selectSel: 0,
   pausedSel: 0,
   pointerInPause: false,
-
-  BLURBS: [
-    'A MORNING WALK, PAST THE BRAMBLE IMPS.',
-    'THE TREES STAND CLOSE. THE BLADE RINGS.',
-    'THE MILL IS STILL. THE WATER IS NOT.',
-    'THE BOG KEEPS WHAT IT TAKES.',
-    'PAST THE GATE, THE KEEP WAITS IN MOONLIGHT.'
-  ],
 
   /* ---------- setup ---------- */
 
@@ -74,8 +68,31 @@ const Game = {
     this.state = 'prologue';
     this.prologueT = 0;
     this.prologueDone = false;
+    this.prologueWait = 0;
     this.roared = false;
     AudioSys.playMusic('keep');
+  },
+
+  /* how fast the story clock runs: slow stretches it, fast tightens it */
+  paceRate() {
+    if (Save.data.pace === 'slow') return 1 / 1.5;
+    if (Save.data.pace === 'fast') return 1 / 0.6;
+    return 1;
+  },
+
+  /* the pause menu, rebuilt every frame so it can show live values */
+  pauseItems() {
+    const paceKey = { slow: 'menu.paceSlow', normal: 'menu.paceNormal', fast: 'menu.paceFast' };
+    const revKey = { instant: 'menu.revealInstant', typed: 'menu.revealTyped' };
+    return [
+      { label: L('menu.resume'), act: 'resume' },
+      { label: L('menu.restart'), act: 'restart' },
+      { label: L('menu.sound', Save.data.muted ? L('menu.soundOff') : L('menu.soundOn')), act: 'sound' },
+      { label: L('menu.pace', L(paceKey[Save.data.pace] || 'menu.paceNormal')), act: 'pace' },
+      { label: L('menu.reveal', L(revKey[Save.data.reveal] || 'menu.revealInstant')), act: 'reveal' },
+      { label: L('menu.language', LANG.LABEL[LANG.current] || 'ENGLISH'), act: 'language' },
+      { label: L('menu.quit'), act: 'quit' }
+    ];
   },
 
   startTransition(cb) {
@@ -117,7 +134,7 @@ const Game = {
     } else {
       this.state = 'intro';
       this.introT = 0;
-      this.stageBlurb = this.BLURBS[i];
+      this.stageBlurb = L('blurb.' + (i + 1));
       if (i === 0 && !Save.data.hintSeen) this.hintT = 9;
     }
 
@@ -232,6 +249,7 @@ const Game = {
       Save.data.muted = m;
       Save.write();
     }
+    if (Input.pressed.language) LANG.toggle();
 
     switch (this.state) {
       case 'title': this.updateTitle(dt); break;
@@ -242,6 +260,7 @@ const Game = {
       case 'paused': this.updatePaused(dt); break;
       case 'dead': this.updateDead(dt); break;
       case 'rescue': this.updateRescue(dt); break;
+      case 'epilogue': this.updateEpilogue(dt); break;
       case 'victory': this.updateVictory(dt); break;
       default: break;
     }
@@ -252,38 +271,56 @@ const Game = {
   },
 
   updateTitle() {
-    if (Input.pressed.confirm || this.clicked(UI.rects.titleStart)) {
+    /* the prologue can be watched again from the title */
+    if (Input.pressed.replay) {
       AudioSys.sfx('select');
       this.startTransition(() => this.startPrologue());
+      return;
+    }
+    if (Input.pressed.confirm || this.clicked(UI.rects.titleStart)) {
+      AudioSys.sfx('select');
+      /* once it has been seen, the road starts at the stage select */
+      if (Save.data.prologueSeen) {
+        this.startTransition(() => this.startSelect());
+      } else {
+        this.startTransition(() => this.startPrologue());
+      }
     }
   },
 
   updatePrologue(dt) {
     if (this.prologueDone) return;
-    this.prologueT += dt;
+    this.prologueT += dt * this.paceRate();
 
     const end = PROLOGUE.end;
+    const inLast = this.prologueT >= PROLOGUE.lastStart;
+
     if (Input.pressed.back) {
       this.prologueT = end;
+      this.prologueDone = true;
       AudioSys.sfx('blip');
     } else if (Input.pressed.confirm || Input.pressed.jump) {
-      const t = this.prologueT;
-      let nxt;
-      if (t < PROLOGUE.crawlDur) nxt = PROLOGUE.crawlDur;
-      else nxt = PROLOGUE.crawlDur +
-        (Math.floor((t - PROLOGUE.crawlDur) / PROLOGUE.panelDur) + 1) * PROLOGUE.panelDur;
-      this.prologueT = Math.min(end, nxt);
+      this.prologueT = inLast ? end : PROLOGUE.nextSceneTime(this.prologueT);
+      this.prologueDone = inLast;
       AudioSys.sfx('blip');
     }
 
     /* the beast calls out of the dark as it rises */
-    if (this.prologueT >= PROLOGUE.crawlDur + 1.9 && !this.roared) {
+    if (this.prologueT >= PROLOGUE.sceneStart('shadow') + 1.9 && !this.roared) {
       this.roared = true;
       AudioSys.sfx('roar');
     }
 
-    if (this.prologueT >= end) {
-      this.prologueDone = true;
+    /* the last panel waits for the player, but never traps them */
+    if (inLast && !this.prologueDone) {
+      this.prologueWait += dt;
+      if (this.prologueWait > 14) { this.prologueT = end; this.prologueDone = true; }
+    }
+    if (this.prologueT > end) this.prologueT = end;
+
+    if (this.prologueDone) {
+      Save.data.prologueSeen = true;
+      Save.write();
       this.startTransition(() => this.startSelect());
     }
   },
@@ -309,7 +346,7 @@ const Game = {
     if (chosen >= 0) {
       if (chosen + 1 > Save.data.unlocked) {
         AudioSys.sfx('locked');
-        this.msg = { text: 'THE THORNS STILL BAR THIS ROAD', t: 2 };
+        this.msg = { text: L('toast.barred'), t: 2 };
       } else {
         this.selectSel = chosen;
         AudioSys.sfx('select');
@@ -393,7 +430,7 @@ const Game = {
     const p = this.player;
     for (const s of this.signs) {
       if (Math.abs(p.cx - (s.x + 8)) < 34 && Math.abs(p.y - s.y) < 46) {
-        this.msg = { text: s.text, t: 2.2 };
+        this.msg = { text: L(s.text), t: 2.2 };
         return;
       }
     }
@@ -452,23 +489,42 @@ const Game = {
     }
 
     if (pick < 0) return;
-    switch (pick) {
-      case 0:
+    const act = (this.pauseItems()[pick] || {}).act;
+    switch (act) {
+      case 'resume':
         this.state = 'playing';
         AudioSys.sfx('select');
         break;
-      case 1:
+      case 'restart':
         AudioSys.sfx('select');
         this.startTransition(() => this.enterStage(this.stageIndex));
         break;
-      case 2: {
+      case 'sound': {
         const m = AudioSys.toggle();
         Save.data.muted = m;
         Save.write();
         AudioSys.sfx('blip');
         break;
       }
-      case 3:
+      case 'pace': {
+        const order = ['slow', 'normal', 'fast'];
+        const i = order.indexOf(Save.data.pace);
+        Save.data.pace = order[(i + 1) % order.length];
+        Save.write();
+        AudioSys.sfx('blip');
+        break;
+      }
+      case 'reveal': {
+        Save.data.reveal = Save.data.reveal === 'typed' ? 'instant' : 'typed';
+        Save.write();
+        AudioSys.sfx('blip');
+        break;
+      }
+      case 'language':
+        LANG.set(LANG.current === 'en' ? 'id' : 'en');
+        AudioSys.sfx('blip');
+        break;
+      case 'quit':
         AudioSys.sfx('down');
         this.startTransition(() => {
           this.state = 'title';
@@ -491,7 +547,17 @@ const Game = {
   updateRescue(dt) {
     this.rescueT += dt;
     if (this.rescueT === dt) AudioSys.sfx('rescue');
-    if (this.rescueT > 11) {
+    if (this.rescueT > 19.8) {
+      /* she is found - dawn is next */
+      this.state = 'epilogue';
+      this.epilogueT = 0;
+      AudioSys.playMusic('dawn');
+    }
+  },
+
+  updateEpilogue(dt) {
+    this.epilogueT += dt;
+    if (this.epilogueT > 23.5) {
       /* write the finish */
       Save.data.unlocked = STAGES.length;
       Save.write();
@@ -522,7 +588,7 @@ const Game = {
     if (this.hearts < this.maxHearts) this.hearts++;
     AudioSys.sfx('checkpoint');
     this.burst(c.x + 6, c.y + 4, PAL.gold, 12, 90, 0.55, 'spark');
-    this.msg = { text: 'LANTERN LIT - YOU WILL WAKE HERE', t: 3 };
+    this.msg = { text: L('toast.checkpoint'), t: 3 };
   },
 
   collect(pk) {
@@ -530,7 +596,7 @@ const Game = {
     if (pk.kind === 'violet') {
       this.hearts = this.maxHearts;
       AudioSys.sfx('violet');
-      this.msg = { text: 'THE VIOLET BLOOM - FULLY HEALED', t: 3 };
+      this.msg = { text: L('toast.violet'), t: 3 };
       this.burst(pk.cx, pk.cy, PAL.violet, 16, 110, 0.6, 'spark');
       this.burst(pk.cx, pk.cy, PAL.white, 8, 80, 0.5, 'spark');
       return;
@@ -544,7 +610,7 @@ const Game = {
     if (this.marigolds % 5 === 0) {
       if (this.hearts < this.maxHearts) this.hearts++;
       AudioSys.sfx('heal');
-      this.msg = { text: 'FIVE MARIGOLDS MEND A HEART', t: 3 };
+      this.msg = { text: L('toast.heal'), t: 3 };
       this.burst(this.player.cx, this.player.cy, PAL.rose, 12, 90, 0.5, 'spark');
     }
   },
@@ -589,7 +655,7 @@ const Game = {
     p.riding = null;
     this.freeze = 0.1;
     this.shake = 3;
-    this.msg = { text: 'THE WATER DRAGS YOU BACK TO THE LANTERN', t: 2.5 };
+    this.msg = { text: L('toast.drown'), t: 2.5 };
     this.camera.x = U.clamp(p.cx - 200, 0, Math.max(0, this.level.w * 16 - 400));
     this.camera.y = U.clamp(p.y - 130, 0, 64);
     this.burst(p.cx, p.y, PAL.waterLight, 12, 110, 0.5, 'chip');
@@ -709,6 +775,7 @@ const Game = {
         UI.dead(ctx, this);
         break;
       case 'rescue': UI.rescue(ctx, this); break;
+      case 'epilogue': UI.epilogue(ctx, this); break;
       case 'victory': UI.victory(ctx, this); break;
       default: break;
     }

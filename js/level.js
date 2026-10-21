@@ -191,7 +191,7 @@ class Chunk {
 const STAGES = [
   {
     id: 'meadow',
-    name: 'LONG MEADOW',
+    nameKey: 'stage.1.name',
     number: 'STAGE 1',
     theme: 'day',
     music: 'meadow',
@@ -201,7 +201,7 @@ const STAGES = [
       function () {
         this.ground();
         this.spawn(3, 12);
-        this.sign(8, 12, 'THE KEEP LIES EAST');
+        this.sign(8, 12, 'sign.1');
         this.flower(14, 12);
         this.platform(17, 11, 4);
         this.flower(18, 10);
@@ -284,7 +284,7 @@ const STAGES = [
 
   {
     id: 'woods',
-    name: 'DEEP WOODS',
+    nameKey: 'stage.2.name',
     number: 'STAGE 2',
     theme: 'woods',
     music: 'woods',
@@ -294,7 +294,7 @@ const STAGES = [
       function () {
         this.ground();
         this.spawn(3, 12);
-        this.sign(7, 12, 'THE THORN WOODS');
+        this.sign(7, 12, 'sign.2');
         this.tree(12, 11, 2);
         this.flower(16, 12);
         this.flower(18, 12);
@@ -375,7 +375,7 @@ const STAGES = [
 
   {
     id: 'mill',
-    name: 'MILLBROOK',
+    nameKey: 'stage.3.name',
     number: 'STAGE 3',
     theme: 'dusk',
     music: 'mill',
@@ -385,7 +385,7 @@ const STAGES = [
       function () {
         this.ground();
         this.spawn(3, 12);
-        this.sign(7, 12, 'MIND THE WATER');
+        this.sign(7, 12, 'sign.3');
         this.flower(12, 12);
         this.flower(14, 12);
         this.crate(18, 12);
@@ -485,7 +485,7 @@ const STAGES = [
 
   {
     id: 'marsh',
-    name: 'SABLE MARSH',
+    nameKey: 'stage.4.name',
     number: 'STAGE 4',
     theme: 'marsh',
     music: 'marsh',
@@ -495,7 +495,7 @@ const STAGES = [
       function () {
         this.ground();
         this.spawn(3, 12);
-        this.sign(5, 12, 'SABLE MARSH');
+        this.sign(5, 12, 'sign.4');
         this.mud(8, 12, 3, 1);
         this.flower(9, 11);
         this.water(14, 18);
@@ -587,7 +587,7 @@ const STAGES = [
 
   {
     id: 'keep',
-    name: 'BRIAR KEEP',
+    nameKey: 'stage.5.name',
     number: 'STAGE 5',
     theme: 'night',
     music: 'keep',
@@ -597,7 +597,7 @@ const STAGES = [
       function () {
         this.ground();
         this.spawn(3, 12);
-        this.sign(7, 12, 'SHE IS IN THE TOWER');
+        this.sign(7, 12, 'sign.5');
         this.torch(4, 13);
         this.torch(17, 13);
         this.flower(12, 12);

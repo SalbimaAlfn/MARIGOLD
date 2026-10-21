@@ -294,7 +294,7 @@ const Game = {
       AudioSys.sfx('blip');
     }
     if (Input.pressed.right) {
-      this.selectSel = Math.min(2, this.selectSel + 1);
+      this.selectSel = Math.min(STAGES.length - 1, this.selectSel + 1);
       AudioSys.sfx('blip');
     }
 
@@ -493,7 +493,7 @@ const Game = {
     if (this.rescueT === dt) AudioSys.sfx('rescue');
     if (this.rescueT > 11) {
       /* write the finish */
-      Save.data.unlocked = 3;
+      Save.data.unlocked = STAGES.length;
       Save.write();
       this.state = 'victory';
       this.time = 0;
@@ -619,8 +619,8 @@ const Game = {
       Save.write();
       this.startTransition(() => this.enterStage(i + 1));
     } else {
-      Save.data.best[2] = Math.max(Save.data.best[2] || 0, this.stageFlowers);
-      Save.data.unlocked = 3;
+      Save.data.best[this.stageIndex] = Math.max(Save.data.best[this.stageIndex] || 0, this.stageFlowers);
+      Save.data.unlocked = STAGES.length;
       Save.write();
       this.state = 'rescue';
       this.rescueT = 0;

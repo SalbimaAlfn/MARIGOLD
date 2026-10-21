@@ -88,7 +88,7 @@ const UI = {
     /* stage name, right */
     const def = STAGES[game.stageIndex];
     drawText(ctx, def.name, 368, 8, { align: 'right', color: PAL.cream, shadow: PAL.ink });
-    drawText(ctx, 'STAGE ' + (game.stageIndex + 1) + '/3', 368, 18, { align: 'right', color: PAL.cream2, shadow: PAL.ink });
+    drawText(ctx, 'STAGE ' + (game.stageIndex + 1) + '/' + STAGES.length, 368, 18, { align: 'right', color: PAL.cream2, shadow: PAL.ink });
 
     /* pause button (also tappable) */
     this.rects.pause = { x: 376, y: 6, w: 18, h: 18 };
@@ -161,7 +161,7 @@ const UI = {
 
     this.logo(ctx, 'MARIGOLD', 200, 44, 4, PAL.cream, PAL.rust);
     drawText(ctx, 'A SMALL KNIGHT\'S ERRAND', 200, 96, { align: 'center', color: PAL.gold, shadow: PAL.ink, scale: 1 });
-    drawText(ctx, '3 STAGES  -  1 PRINCESS  -  A GREAT MANY THORNS', 200, 110,
+    drawText(ctx, STAGES.length + ' STAGES  -  1 PRINCESS  -  A GREAT MANY THORNS', 200, 110,
       { align: 'center', color: PAL.cream2, shadow: PAL.ink });
 
     const blink = Math.floor(game.time * 2) % 2 === 0;
@@ -190,13 +190,14 @@ const UI = {
     this.logo(ctx, 'STAGE SELECT', 200, 16, 2, PAL.cream, PAL.rust);
     drawText(ctx, 'CHOOSE YOUR ROAD', 200, 38, { align: 'center', color: PAL.cream2 });
 
-    const cardW = 116, cardH = 122, gap = 14;
-    const total = cardW * 3 + gap * 2;
+    const cardW = 75, cardH = 122, gap = 4;
+    const n = STAGES.length;
+    const total = cardW * n + gap * (n - 1);
     const x0 = Math.floor((400 - total) / 2);
     const y = 56;
     this.rects.cards = [];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < n; i++) {
       const def = STAGES[i];
       const x = x0 + i * (cardW + gap);
       const locked = i + 1 > Save.data.unlocked;
@@ -209,7 +210,7 @@ const UI = {
       ctx.fillRect(x + 2, y + 2, cardW - 4, cardH - 4);
 
       /* preview window */
-      const px = x + 5, py = y + 5, pw = cardW - 10, ph = 52;
+      const px = x + 4, py = y + 4, pw = cardW - 8, ph = 52;
       this.preview(ctx, def.theme, px, py, pw, ph, i);
 
       if (locked) {
@@ -226,12 +227,12 @@ const UI = {
         ctx.fillRect(px + pw / 2 - 3, py + ph / 2 - 7, 6, 5);
       }
 
-      drawText(ctx, def.number, x + 6, py + ph + 6, { color: locked ? PAL.stone : PAL.gold });
-      drawText(ctx, def.name, x + 6, py + ph + 17, { color: locked ? PAL.stoneDark : PAL.cream });
+      drawText(ctx, def.number, x + cardW / 2, py + ph + 6, { align: 'center', color: locked ? PAL.stone : PAL.gold });
+      drawText(ctx, def.name, x + cardW / 2, py + ph + 17, { align: 'center', color: locked ? PAL.stoneDark : PAL.cream });
 
       const best = Save.data.best[i] || 0;
       drawText(ctx, locked ? 'LOCKED' : ('FLOWERS ' + String(best).padStart(2, '0')),
-        x + 6, y + cardH - 14, { color: locked ? PAL.stoneDark : PAL.cream2 });
+        x + cardW / 2, y + cardH - 14, { align: 'center', color: locked ? PAL.stoneDark : PAL.cream2 });
 
       if (sel && !locked) {
         ctx.fillStyle = PAL.goldLight;
@@ -708,25 +709,25 @@ const UI = {
     drawText(ctx, 'SnoozyPaw IS FREE AND THE BRIAR IS QUIET', 200, 66,
       { align: 'center', color: PAL.gold, shadow: PAL.ink });
 
-    this.panel(ctx, 74, 82, 252, 74);
-    drawText(ctx, 'FLOWERS GATHERED', 200, 90, { align: 'center', color: PAL.cream2 });
+    this.panel(ctx, 74, 74, 252, 92);
+    drawText(ctx, 'FLOWERS GATHERED', 200, 80, { align: 'center', color: PAL.cream2 });
     let total = 0;
-    for (let i = 0; i < 3; i++) total += Save.data.best[i] || 0;
+    for (let i = 0; i < STAGES.length; i++) total += Save.data.best[i] || 0;
     drawText(ctx, String(total) + ' / ' + String(game.totalPossible).padStart(3, '0'),
-      200, 102, { align: 'center', color: PAL.marigold, scale: 2 });
-    for (let i = 0; i < 3; i++) {
+      200, 90, { align: 'center', color: PAL.marigold, scale: 2 });
+    for (let i = 0; i < STAGES.length; i++) {
       drawText(ctx, STAGES[i].name + '  ' + String(Save.data.best[i] || 0).padStart(2, '0'),
-        200, 128 + i * 9, { align: 'center', color: PAL.cream });
+        200, 112 + i * 9, { align: 'center', color: PAL.cream });
     }
 
     if (Math.floor(game.time * 2) % 2 === 0) {
-      drawText(ctx, 'PRESS SPACE FOR THE TITLE', 200, 170,
+      drawText(ctx, 'PRESS SPACE FOR THE TITLE', 200, 176,
         { align: 'center', color: PAL.white, shadow: PAL.ink });
     }
     drawText(ctx, 'THANK YOU FOR PLAYING MARIGOLD', 200, 212,
       { align: 'center', color: PAL.cream2, shadow: PAL.ink });
 
-    this.rects.victoryExit = { x: 90, y: 160, w: 220, h: 24 };
+    this.rects.victoryExit = { x: 90, y: 168, w: 220, h: 22 };
   },
 
   /* ---------- transition ---------- */

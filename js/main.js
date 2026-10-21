@@ -2,10 +2,11 @@
 
 const Save = {
   KEY: 'marigold.save.v1',
+  SLOTS: 5,
   data: {
     muted: false,
     unlocked: 1,
-    best: [0, 0, 0],
+    best: [0, 0, 0, 0, 0],
     hintSeen: false
   },
 
@@ -15,11 +16,11 @@ const Save = {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
-          if (typeof parsed.unlocked === 'number') this.data.unlocked = U.clamp(parsed.unlocked, 1, 3);
+          if (typeof parsed.unlocked === 'number') this.data.unlocked = U.clamp(parsed.unlocked, 1, this.SLOTS);
           if (typeof parsed.muted === 'boolean') this.data.muted = parsed.muted;
           if (typeof parsed.hintSeen === 'boolean') this.data.hintSeen = parsed.hintSeen;
           if (Array.isArray(parsed.best)) {
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < this.SLOTS; i++) {
               this.data.best[i] = Math.max(0, Number(parsed.best[i]) || 0);
             }
           }

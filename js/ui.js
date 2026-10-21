@@ -134,7 +134,7 @@ const UI = {
     ctx.fillRect(70, y, 260, 1);
     ctx.fillRect(70, y + 33, 260, 1);
     drawText(ctx, 'ARROWS/WASD MOVE   SPACE JUMP', 200, y + 7, { align: 'center', color: PAL.cream });
-    drawText(ctx, 'J SWORD   P PAUSE   M SOUND', 200, y + 19, { align: 'center', color: PAL.cream2 });
+    drawText(ctx, 'J SWORD   L SHIELD   P PAUSE   M SOUND', 200, y + 19, { align: 'center', color: PAL.cream2 });
     ctx.globalAlpha = 1;
   },
 

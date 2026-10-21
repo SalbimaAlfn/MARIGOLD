@@ -88,6 +88,7 @@ class Player {
     this.jumpBuffer = 0;
     this.jumpCut = false;
     this.attackT = -1;
+    this.blocking = false;
     this.hitSet = new Set();
     this.invuln = 0;
     this.hurtTimer = 0;
@@ -126,12 +127,15 @@ class Player {
 
     const dir = (Input.held.right ? 1 : 0) - (Input.held.left ? 1 : 0);
 
+    /* shield: a braced stance, only from the ground */
+    this.blocking = !!Input.held.shield && this.hurtTimer <= 0 && this.onGround;
+
     /* attack */
     if (this.attackT >= 0) {
       this.attackT += dt;
       if (this.attackT > 0.3) this.attackT = -1;
     }
-    if (Input.pressed.attack && this.attackT < 0) {
+    if (Input.pressed.attack && this.attackT < 0 && !this.blocking) {
       this.attackT = 0;
       this.hitSet = new Set();
       AudioSys.sfx('attack');
@@ -159,7 +163,8 @@ class Player {
       this.vx = U.approach(this.vx, 0, 260 * dt);
     } else if (dir !== 0) {
       const a = this.onGround ? PHYS.ACCEL_G : PHYS.ACCEL_A;
-      this.vx = U.approach(this.vx, dir * PHYS.RUN, a * dt);
+      const max = this.blocking ? PHYS.RUN * 0.45 : PHYS.RUN;
+      this.vx = U.approach(this.vx, dir * max, a * dt);
       this.facing = dir;
     } else {
       const f = this.onGround ? PHYS.FRICTION : 260;
@@ -186,6 +191,9 @@ class Player {
 
     if (this.onGround) this.coyote = PHYS.COYOTE;
     else if (wasGround) this.coyote = PHYS.COYOTE;
+
+    /* a brace needs both feet */
+    if (this.blocking && !this.onGround) this.blocking = false;
 
     if (landed && !wasGround && fallSpeed > 210) {
       AudioSys.sfx('land');
@@ -291,14 +299,14 @@ class Player {
 
   draw(ctx, game) {
     const t = game.time;
-    const drawX = Math.round(this.x - 2);
+    const drawX = Math.round(this.x - 4);
     const drawY = Math.round(this.y - 2);
 
     /* shadow */
     if (this.onGround) {
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(drawX + 3, drawY + 20, 8, 2);
+      ctx.fillRect(drawX + 5, drawY + 20, 8, 2);
       ctx.globalAlpha = 1;
     }
 
@@ -316,8 +324,49 @@ class Player {
     const bob = (this.onGround && Math.abs(this.vx) > 12 && Math.floor(this.animT * 10) % 2 === 1) ? -1 : 0;
     ctx.drawImage(img, drawX, drawY + bob);
 
+    /* the blade, carried at the side when it is not swinging */
+    if (this.attackT < 0) this.drawRestingSword(ctx);
+
+    /* shield raised */
+    if (this.blocking) this.drawShield(ctx);
+
     /* sword + arc */
     if (this.attackT >= 0) this.drawSword(ctx, t);
+  }
+
+  /* the sword hangs point-down at the hero's leading side */
+  drawRestingSword(ctx) {
+    const f = this.facing;
+    const x = Math.round(f > 0 ? this.x + this.w + 1 : this.x - 5);
+    const y = Math.round(this.y + 3);
+
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(x, y + 2, 4, 12);
+    ctx.fillStyle = PAL.metal;
+    ctx.fillRect(x + 1, y + 3, 2, 10);
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(x + 1, y + 3, 1, 7);
+    ctx.fillStyle = PAL.gold;
+    ctx.fillRect(x - 1, y, 6, 3);
+    ctx.fillStyle = PAL.rust;
+    ctx.fillRect(x + 1, y - 3, 2, 3);
+  }
+
+  /* the shield comes up in front when Finn braces */
+  drawShield(ctx) {
+    const f = this.facing;
+    const img = Sprites.shield;
+    const sx = Math.round(f > 0 ? this.x + this.w - 2 : this.x - 5);
+    const sy = Math.round(this.y);
+    if (f < 0) {
+      ctx.save();
+      ctx.translate(sx + img.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, sy);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, sx, sy);
+    }
   }
 
   drawSword(ctx, t) {

@@ -401,6 +401,14 @@ const Game = {
         p.onGround = false;
         e.stomp(p, this);
         if (!e.dead) this.burst(p.cx, p.y + p.h, PAL.cream2, 5, 70, 0.3, 'dust');
+      } else if (p.blocking && U.sign(e.cx - p.cx) === p.facing) {
+        /* the shield holds: a clank, a shove, no heart lost */
+        AudioSys.sfx('clank');
+        this.freeze = 0.04;
+        this.shake = Math.max(this.shake, 2);
+        this.spark(p.cx + p.facing * 6, p.cy);
+        p.vx = -p.facing * 45;
+        p.vy = Math.min(p.vy, 0);
       } else {
         this.hurtPlayer(e.damage || 1, e.cx, e.cy);
       }

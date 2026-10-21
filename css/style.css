@@ -184,6 +184,7 @@ body.touch.in-game #touch { display: block; }
 }
 
 .cbtn.attack { margin-bottom: clamp(14px, 3vw, 26px); }
+.cbtn.shield { background: rgba(231, 179, 75, .92); }
 
 .cbtn.is-down {
   transform: translateY(4px);

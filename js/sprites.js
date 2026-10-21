@@ -20,14 +20,14 @@ const Sprites = {
 
   init() {
     this.hero = {
-      idle: this.pair(this.compose(HERO_TOP, HERO_LEGS.idle)),
+      idle: this.pair(this.compose(HERO_TOP, HERO_LEGS.idle, 3)),
       run: [
-        this.pair(this.compose(HERO_TOP, HERO_LEGS.runA)),
-        this.pair(this.compose(HERO_TOP, HERO_LEGS.runB))
+        this.pair(this.compose(HERO_TOP, HERO_LEGS.runA, 3)),
+        this.pair(this.compose(HERO_TOP, HERO_LEGS.runB, 3))
       ],
-      jump: this.pair(this.compose(HERO_TOP, HERO_LEGS.jump)),
-      fall: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall)),
-      hurt: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall))
+      jump: this.pair(this.compose(HERO_TOP, HERO_LEGS.jump, 3)),
+      fall: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall, 3)),
+      hurt: this.pair(this.compose(HERO_TOP, HERO_LEGS.fall, 3))
     };
 
     this.imp = [this.pair(bakeSprite(IMP_A)), this.pair(bakeSprite(IMP_B))];
@@ -47,7 +47,15 @@ const Sprites = {
   },
 
   pair(cv) { return { r: cv, l: flipSprite(cv) }; },
-  compose(topRows, legRows) { return bakeSprite(topRows.concat(legRows)); },
+  compose(topRows, legRows, leftPad) {
+    const w = Math.max.apply(null, topRows.map(r => r.length));
+    const legs = legRows.map((r) => {
+      const gap = Math.max(0, w - r.length);
+      const lp = leftPad === undefined ? Math.floor(gap / 2) : leftPad;
+      return ' '.repeat(lp) + r + ' '.repeat(Math.max(0, gap - lp));
+    });
+    return bakeSprite(topRows.concat(legs));
+  },
   facing(frame, dir) { return dir < 0 ? frame.l : frame.r; }
 };
 
@@ -87,23 +95,23 @@ function flipSprite(src) {
   return cv;
 }
 
-/* ---------- hero Finn: 14 wide, 20 tall ---------- */
+/* ---------- hero Finn: 18 wide, 20 tall (shield on the back arm) ---------- */
 
 const HERO_TOP = [
-  '....kkkkkk....',
-  '...kHHHHHHk...',
-  '..kHHHHHHHHk..',
-  '..kHSSSSSSHk..',
-  '..kHSESSESHk..',
-  '..kHSSSSSSHk..',
-  '..kHSSSSSSHk..',
-  '...kSSSSSSk...',
-  '....krrrrk....',
-  '..keeeeeeeek..',
-  '..keeeeeeeek..',
-  '..keeemeeeek..',
-  '..keeeeeeeek..',
-  '..kggggggggk..'
+  '.......kkkkkk.....',
+  '......kHHHHHHk....',
+  '.....kHHHHHHHHk...',
+  '.....kHSSSSSSHk...',
+  '.....kHSESSESHk...',
+  '.ggg.kHSSSSSSHk...',
+  'gsssgkHSSSSSSHk...',
+  'gsmsgkSSSSSSk.....',
+  'gsssgkrrrrk.......',
+  'gsssgkeeeeeeeek...',
+  'gsmsgkeeeeeeeek...',
+  'gsssgkeeemeeeek...',
+  '.gsg.keeeeeeeek...',
+  '.ggg.kggggggggk...'
 ];
 
 const HERO_LEGS = {

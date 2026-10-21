@@ -2,8 +2,8 @@
    `held` is state; `pressed` are one-frame edges, cleared by endStep(). */
 
 const Input = {
-  held: { left: false, right: false, up: false, down: false, jump: false, attack: false },
-  pressed: { left: false, right: false, up: false, down: false, jump: false, attack: false, confirm: false, back: false, mute: false, fullscreen: false },
+  held: { left: false, right: false, up: false, down: false, jump: false, attack: false, shield: false },
+  pressed: { left: false, right: false, up: false, down: false, jump: false, attack: false, shield: false, confirm: false, back: false, mute: false, fullscreen: false },
   click: null,
   onGesture: [],
   canvas: null,
@@ -17,6 +17,7 @@ const Input = {
     ArrowDown: 'down', KeyS: 'down',
     Space: 'jump',
     KeyK: 'jump', KeyX: 'attack', KeyJ: 'attack',
+    KeyL: 'shield', KeyQ: 'shield', ShiftLeft: 'shield', ShiftRight: 'shield',
     Enter: 'confirm', NumpadEnter: 'confirm', KeyZ: 'confirm',
     Escape: 'back', KeyP: 'back',
     KeyM: 'mute', KeyF: 'fullscreen'
@@ -38,7 +39,7 @@ const Input = {
         if (act === 'jump' && e.code === 'Space') this.pressed.confirm = true;
         if (act === 'jump' && e.code === 'KeyZ') { this.pressed.jump = false; this.pressed.confirm = true; }
       }
-      if (act === 'left' || act === 'right' || act === 'up' || act === 'down' || act === 'jump' || act === 'attack') {
+      if (act === 'left' || act === 'right' || act === 'up' || act === 'down' || act === 'jump' || act === 'attack' || act === 'shield') {
         this.held[act] = true;
       }
       this._gesture();
@@ -47,7 +48,7 @@ const Input = {
     window.addEventListener('keyup', (e) => {
       const act = this.KEYMAP[e.code];
       if (!act) return;
-      if (act === 'left' || act === 'right' || act === 'up' || act === 'down' || act === 'jump' || act === 'attack') {
+      if (act === 'left' || act === 'right' || act === 'up' || act === 'down' || act === 'jump' || act === 'attack' || act === 'shield') {
         this.held[act] = false;
       }
     });
@@ -114,7 +115,7 @@ const Input = {
 
   releaseAll() {
     this.held.left = this.held.right = this.held.up = this.held.down = false;
-    this.held.jump = this.held.attack = false;
+    this.held.jump = this.held.attack = this.held.shield = false;
     this._pointerCount = {};
     document.querySelectorAll('.cbtn.is-down').forEach((b) => b.classList.remove('is-down'));
   },

@@ -84,31 +84,31 @@ STRINGS.id = {
     'DULU, DI PADANG EMAS',
     'DAN DI TENGAH, SNOOZYPAW MEMELIH',
     'MARIGOLD DAN PERDAMIAN',
-    'DI SAMPINGNY BERJALAN FINN - SEORANG',
+    'DI SAMPINGNYA BERJALAN FINN - SEORANG',
     'KSATRIA DENGAN PEDANG KAYU DAN PERISAI',
     'YANG TAK PERNAH DIPAKAI',
     '',
-    'TAPI BELITAN TELAH LAPAR',
+    'TAPI SANG MONSTER TELAH LAPAR',
     'LAMA SEKALI, DAN PADA MALAM',
     'SEBELUM PANEN, DIA DATANG'
   ],
 
   /* ---------- cerita, satu panel demi satu ---------- */
-  'scene.meadow.1': 'BUNGA-BUNGA MEWARBAK TAHUN INI. ITU TANDA BAIK.',
+  'scene.meadow.1': 'BUNGA-BUNGA SEMERBAK TAHUN INI. ITU TANDA BAIK.',
   'scene.meadow.2': 'TANDA BAIK. AKU AKAN MEMBAWA MU MAHKOTA BUNGA.',
   'scene.meadow.3': 'DAN KAMU? APA YANG AKU AKAN BAWA?',
   'scene.meadow.4': '...DIRIKU. SEMUA DARI DIRIKU.',
 
-  'scene.ask.1': 'FINN. BELITAN LAPAR LAGI.',
+  'scene.ask.1': 'FINN. SANG MONSTER LAPAR LAGI.',
   'scene.ask.2': 'MAKA AKU TETAP. BERSAMA PEDANGKU. BERSAMAMU.',
   'scene.ask.3': 'JANJIKAN PADAKU. APA PUN YANG MUNCUL MALAM INI.',
   'scene.ask.4': 'AKU JANJI.',
-  'scene.ask.5': 'MAKA TETAP DEKAT.',
+  'scene.ask.5': 'TETAPLAH BERSAMAKU.',
 
   'scene.shadow.1': 'SNOOZYP... TIDAK.',
-  'scene.shadow.2': 'ADA YANG KUNO BANGUN.',
+  'scene.shadow.2': 'MONSTER ITU TELAH MUNCUL.',
 
-  'scene.taking.1': 'FINN. IKEUTI DURI. TEMUKAN AKU.',
+  'scene.taking.1': 'FINN. IKUTI. TEMUKAN AKU.',
   'scene.taking.2': 'IA MEMBAWA AKU KE TIMUR.',
 
   'scene.knight.1': 'MAKA AKU MASUK KE DALAM GELAP.',
@@ -142,7 +142,7 @@ STRINGS.id = {
 
   /* ---------- kemenangan ---------- */
   'victory.title': 'MENANG',
-  'victory.line': 'SNOOZYPAW BEBAS DAN BELITAN SUNGGU',
+  'victory.line': 'SNOOZYPAW BEBAS DAN BELITAN DURI',
   'victory.romance': 'DAN MEREKA HIDUP BAHAGIA SELAMANYA',
   'victory.flowers': 'BUNGA TERKUMPUL',
   'victory.back': 'TEKAN SPASI UNTUK KE JUDUL',

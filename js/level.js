@@ -286,7 +286,7 @@ const STAGES = [
         this.ground(0, 9);
         this.water(10, 17);
         this.ground(18, 24);
-        this.mover(11, 11, 2, 'x', 5, 50);
+        this.mover(11, 10, 2, 'x', 6, 55);
         this.flower(13, 9);
         this.flower(14, 9);
         this.enemy('bat', 15, 8);
@@ -297,7 +297,7 @@ const STAGES = [
         this.ground(0, 9);
         this.water(10, 13);
         this.rect(14, 6, 11, 12, '=');
-        this.mover(10, 12, 2, 'y', 4, 42);
+        this.mover(9, 11, 2, 'y', 5, 48);
         this.flower(12, 5);
         this.stone(15, 5, 3);
         this.enemy('bat', 17, 4);

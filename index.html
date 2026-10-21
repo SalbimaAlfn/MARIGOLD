@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#16131f">
+<meta name="description" content="MARIGOLD — a small knight's errand. A hand-coded pixel platformer.">
+<title>MARIGOLD — a small knight's errand</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='3' y='0' width='2' height='2' fill='%23f2a541'/%3E%3Crect x='0' y='3' width='2' height='2' fill='%23f2a541'/%3E%3Crect x='6' y='3' width='2' height='2' fill='%23f2a541'/%3E%3Crect x='3' y='6' width='2' height='2' fill='%23f2a541'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23e7b34b'/%3E%3Crect x='3' y='3' width='2' height='2' fill='%23b04a32'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="">
+<main id="shell">
+
+  <header id="bar">
+    <span class="brand">
+      <svg class="mark" width="12" height="12" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
+        <rect x="3" y="0" width="2" height="2" fill="#f2a541"/>
+        <rect x="0" y="3" width="2" height="2" fill="#f2a541"/>
+        <rect x="6" y="3" width="2" height="2" fill="#f2a541"/>
+        <rect x="3" y="6" width="2" height="2" fill="#f2a541"/>
+        <rect x="2" y="2" width="4" height="4" fill="#e7b34b"/>
+        <rect x="3" y="3" width="2" height="2" fill="#b04a32"/>
+      </svg>
+      MARIGOLD
+    </span>
+    <span class="tag">a small knight's errand</span>
+    <button id="fsBtn" class="icon-btn" type="button" aria-label="Toggle fullscreen" title="Fullscreen (F)">
+      <svg width="14" height="14" viewBox="0 0 14 14" shape-rendering="crispEdges" aria-hidden="true">
+        <path d="M0 0h4v1H1v3H0V0zm14 0h-4v1h3v3h1V0zM0 14h4v-1H1v-3H0v4zm14 0h-4v-1h3v-3h1v4z" fill="currentColor"/>
+        <path d="M4 4h2v2H4zm4 0h2v2H8zm-4 4h2v2H4zm4 0h2v2H8z" fill="currentColor"/>
+      </svg>
+    </button>
+  </header>
+
+  <div id="stage">
+    <canvas id="game" width="400" height="224" tabindex="0"
+      aria-label="MARIGOLD, a 2D pixel platformer. Move with arrow keys or A and D, jump with Space, attack with J, pause with P."></canvas>
+
+    <div id="touch" aria-hidden="false">
+      <div class="pad pad-left">
+        <button class="cbtn dir" type="button" data-act="left" aria-label="Move left">
+          <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path d="M9 2h3v12H9V2zM6 4h3v8H6V4zM3 6h3v4H3V6z" fill="currentColor"/>
+          </svg>
+          <span class="cap">LEFT</span>
+        </button>
+        <button class="cbtn dir" type="button" data-act="right" aria-label="Move right">
+          <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path d="M4 2h3v12H4V2zM7 4h3v8H7V4zM10 6h3v4h-3V6z" fill="currentColor"/>
+          </svg>
+          <span class="cap">RIGHT</span>
+        </button>
+      </div>
+      <div class="pad pad-right">
+        <button class="cbtn attack" type="button" data-act="attack" aria-label="Attack">
+          <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path d="M11 1h4v4h-2v2h-2v2h-2V5h2V3h-2V1h2z" fill="currentColor"/>
+            <path d="M6 7h2v2h-2zM5 9h2v2H5zM4 11h2v2H4z" fill="currentColor"/>
+            <path d="M2 12h3v3H2z" fill="currentColor"/>
+          </svg>
+          <span class="cap">HIT</span>
+        </button>
+        <button class="cbtn jump" type="button" data-act="jump" aria-label="Jump">
+          <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path d="M7 2h2v2h2v2h2v2H9v2H7V8H3V6h2V4h2V2z" fill="currentColor"/>
+            <path d="M3 12h10v2H3z" fill="currentColor"/>
+          </svg>
+          <span class="cap">JUMP</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="rotate" hidden>
+      <div class="rotate-box">
+        <div class="phone">
+          <span class="phone-body"></span>
+          <svg class="arrow" width="26" height="26" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path d="M7 1h2v2h2v2h2v2h-2V7h-2v2H7V7H5v2H3V7H1V5h2V3h2V1h2z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2>TURN THE PHONE SIDEWAYS</h2>
+        <p>MARIGOLD plays in landscape. Rotate your device.</p>
+        <button id="rotateOk" type="button">PLAY IN PORTRAIT</button>
+      </div>
+    </div>
+  </div>
+
+  <footer id="hint">
+    <span><kbd>←</kbd><kbd>→</kbd> MOVE</span>
+    <span><kbd>SPACE</kbd> JUMP</span>
+    <span><kbd>J</kbd> ATTACK</span>
+    <span><kbd>P</kbd> PAUSE</span>
+    <span><kbd>M</kbd> SOUND</span>
+  </footer>
+
+</main>
+
+<script src="js/palette.js"></script>
+<script src="js/util.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/tiles.js"></script>
+<script src="js/level.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

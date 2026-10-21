@@ -34,6 +34,9 @@ const Game = {
   msg: null,
   hintT: 0,
   introT: 0,
+  prologueT: 0,
+  prologueDone: false,
+  roared: false,
   deadT: 0,
   rescueT: 0,
   selectSel: 0,
@@ -60,8 +63,17 @@ const Game = {
 
   startSelect() {
     this.state = 'select';
-    this.selectSel = U.clamp(Save.data.unlocked - 1, 0, 2);
+    this.selectSel = U.clamp(Save.data.unlocked - 1, 0, STAGES.length - 1);
     AudioSys.sfx('select');
+    AudioSys.playMusic('meadow');
+  },
+
+  startPrologue() {
+    this.state = 'prologue';
+    this.prologueT = 0;
+    this.prologueDone = false;
+    this.roared = false;
+    AudioSys.playMusic('keep');
   },
 
   startTransition(cb) {
@@ -213,6 +225,7 @@ const Game = {
     switch (this.state) {
       case 'title': this.updateTitle(dt); break;
       case 'select': this.updateSelect(dt); break;
+      case 'prologue': this.updatePrologue(dt); break;
       case 'intro': this.updateIntro(dt); break;
       case 'playing': this.updatePlaying(dt); break;
       case 'paused': this.updatePaused(dt); break;
@@ -230,6 +243,36 @@ const Game = {
   updateTitle() {
     if (Input.pressed.confirm || this.clicked(UI.rects.titleStart)) {
       AudioSys.sfx('select');
+      this.startTransition(() => this.startPrologue());
+    }
+  },
+
+  updatePrologue(dt) {
+    if (this.prologueDone) return;
+    this.prologueT += dt;
+
+    const end = PROLOGUE.end;
+    if (Input.pressed.back) {
+      this.prologueT = end;
+      AudioSys.sfx('blip');
+    } else if (Input.pressed.confirm || Input.pressed.jump) {
+      const t = this.prologueT;
+      let nxt;
+      if (t < PROLOGUE.crawlDur) nxt = PROLOGUE.crawlDur;
+      else nxt = PROLOGUE.crawlDur +
+        (Math.floor((t - PROLOGUE.crawlDur) / PROLOGUE.panelDur) + 1) * PROLOGUE.panelDur;
+      this.prologueT = Math.min(end, nxt);
+      AudioSys.sfx('blip');
+    }
+
+    /* the beast calls out of the dark as it rises */
+    if (this.prologueT >= PROLOGUE.crawlDur + 1.9 && !this.roared) {
+      this.roared = true;
+      AudioSys.sfx('roar');
+    }
+
+    if (this.prologueT >= end) {
+      this.prologueDone = true;
       this.startTransition(() => this.startSelect());
     }
   },
@@ -624,6 +667,7 @@ const Game = {
     switch (this.state) {
       case 'title': UI.title(ctx, this); break;
       case 'select': UI.select(ctx, this); break;
+      case 'prologue': UI.prologue(ctx, this); break;
       case 'intro':
         this.renderWorld(ctx);
         UI.intro(ctx, this);

@@ -9,6 +9,8 @@ const Sprites = {
   guard: null,
   shield: null,
   princess: null,
+  beast: null,
+  beastRoar: null,
   marigold: null,
   violet: null,
   pod: null,
@@ -34,6 +36,8 @@ const Sprites = {
     this.guard = [this.pair(bakeSprite(GUARD)), this.pair(bakeSprite(GUARD2))];
     this.shield = bakeSprite(SHIELD);
     this.princess = bakeSprite(PRINCESS);
+    this.beast = bakeSprite(BEAST);
+    this.beastRoar = bakeSprite(BEAST_ROAR);
     this.marigold = bakeSprite(MARIGOLD);
     this.violet = bakeSprite(VIOLET);
     this.pod = bakeSprite(POD);
@@ -400,3 +404,38 @@ const SIGN = [
   '....kkkk....',
   '...kkkkkk...'
 ];
+
+/* ---------- the briar beast: 30 wide, 24 tall ---------- */
+
+const BEAST = [
+  '...kk.....' + '.........' + '.....kk...',
+  '....kk....' + '.........' + '....kk....',
+  '...kMk....' + '.........' + '....kMk...',
+  '..kMMMk...' + '..kkkkkk..' + '...kMMMk..',
+  '..kMMMk...' + '.kMMMMMMk.' + '...kMMMk..',
+  '..kMMMk...' + '.kMgEgEgM.' + '...kMMMk..',
+  '..kMMMk...' + '.kMgEgEgM.' + '...kMMMk..',
+  '..kMMMk...' + '.kMkkkkMk.' + '...kMMMk..',
+  '..kMMMk...' + '.kMkrrrMk.' + '...kMMMk..',
+  '...kMMk...' + '..kMMMMk..' + '...kMMk...',
+  '..kMMMMk..' + '.kMMMMMMk.' + '..kMMMMk..',
+  '...kMMk...' + 'kMMMMMMMMk' + '...kMMk...',
+  '...kMMk...' + 'kMkkkkkkMk' + '...kMMk...',
+  '....kkk...' + '.kMMMMMMk.' + '...kkk....',
+  '.........k' + 'kMMMMMMMMk' + 'k.........',
+  '.........k' + 'kMMkkkkMMk' + 'k.........',
+  '........k.' + 'kMMkkkkMMk' + '.k........',
+  '.........k' + 'kMMMMMMMMk' + 'k.........',
+  '....k.....' + '.kDDDDDDk.' + '.....k....',
+  '...kDk....' + '..DDDDDD..' + '....kDk...',
+  '...kDDk...' + '.kDDDDDDk.' + '...kDDk...',
+  '..kDDDk...' + 'kDDDDDDDDk' + '...kDDDk..',
+  '..kDDDk...' + 'kDDDDDDDDk' + '...kDDDk..',
+  '..kkkkk...' + '.kkkkkkkk.' + '...kkkkk..'
+];
+
+/* the same beast, mid-roar: the maw hangs open */
+const BEAST_ROAR = BEAST.slice();
+BEAST_ROAR[7] = '..kMMMk...' + '.kMMMMMMk.' + '...kMMMk..';
+BEAST_ROAR[8] = '..kMMMk...' + '.kMkrrrMk.' + '...kMMMk..';
+BEAST_ROAR[9] = '...kMMk...' + '.kMkkkkMk.' + '...kMMk...';

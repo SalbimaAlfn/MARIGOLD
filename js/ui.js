@@ -346,6 +346,249 @@ const UI = {
     ctx.globalAlpha = 1;
   },
 
+  /* ---------- prologue: the story before the road ---------- */
+
+  prologue(ctx, game) {
+    const t = game.prologueT;
+    if (t < PROLOGUE.crawlDur) {
+      this.crawl(ctx, t);
+      return;
+    }
+    const p = t - PROLOGUE.crawlDur;
+    const idx = Math.min(3, Math.floor(p / PROLOGUE.panelDur));
+    const local = p - idx * PROLOGUE.panelDur;
+    if (idx === 0) this.sceneMeadow(ctx, game, local);
+    else if (idx === 1) this.sceneShadow(ctx, game, local);
+    else if (idx === 2) this.sceneTaking(ctx, game, local);
+    else this.sceneKnight(ctx, game, local);
+
+    /* cross-fade across the seam between panels */
+    const seam = Math.min(local, PROLOGUE.panelDur - local) / 0.4;
+    if (seam < 1) {
+      ctx.globalAlpha = U.clamp(1 - seam, 0, 1);
+      ctx.fillStyle = PAL.inkDeep;
+      ctx.fillRect(0, 0, 400, 224);
+      ctx.globalAlpha = 1;
+    }
+  },
+
+  /* the crawl: gold text receding to a vanishing point over a starfield */
+  crawl(ctx, t) {
+    ctx.fillStyle = '#04050b';
+    ctx.fillRect(0, 0, 400, 224);
+
+    for (const s of PROLOGUE_STARS) {
+      const y = (s.y + t * s.s) % 224;
+      const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.6 + s.p));
+      ctx.globalAlpha = tw * s.b;
+      ctx.fillStyle = s.c;
+      ctx.fillRect(Math.round(s.x), Math.round(y), s.l, s.l);
+    }
+    ctx.globalAlpha = 1;
+
+    if (!PROLOGUE_BAKED.length) {
+      for (const L of PROLOGUE.crawlLines) {
+        if (!L.text) { PROLOGUE_BAKED.push(null); continue; }
+        const w = Math.max(1, textWidth(L.text, 1));
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = 8;
+        const c = cv.getContext('2d');
+        drawText(c, L.text, 0, 0, { color: L.color });
+        PROLOGUE_BAKED.push(cv);
+      }
+    }
+
+    /* each line enters at the vanishing point, grows, and drops off the bottom */
+    const TRAVEL = 4.6, dt = 0.30;
+    ctx.imageSmoothingEnabled = false;
+    for (let i = 0; i < PROLOGUE.crawlLines.length; i++) {
+      const img = PROLOGUE_BAKED[i];
+      if (!img) continue;
+      const L = PROLOGUE.crawlLines[i];
+      const q = (t - i * dt) / TRAVEL;
+      if (q < 0 || q > 1.02) continue;
+      const s = (0.5 + 0.6 * Math.pow(q, 1.6)) * L.mul;
+      const y = 4 + 220 * Math.pow(q, 0.75);
+      if (y > 230) continue;
+      const a = U.clamp(q / 0.12, 0, 1) * U.clamp((1 - q) / 0.10, 0, 1);
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a;
+      const w = Math.round(img.width * s), h = Math.round(img.height * s);
+      ctx.drawImage(img, Math.round(200 - w / 2), Math.round(y), w, h);
+    }
+    ctx.globalAlpha = 1;
+    ctx.imageSmoothingEnabled = true;
+
+    /* opening fade up from black */
+    if (t < 1.2) {
+      ctx.globalAlpha = U.clamp(1 - t / 1.2, 0, 1);
+      ctx.fillStyle = PAL.inkDeep;
+      ctx.fillRect(0, 0, 400, 224);
+      ctx.globalAlpha = 1;
+    }
+
+    this.skipHint(ctx, t);
+  },
+
+  skipHint(ctx, t) {
+    if (Math.floor(t * 2) % 2 === 0) {
+      drawText(ctx, 'SPACE SKIPS AHEAD   ESC SKIPS ALL', 200, 210,
+        { align: 'center', color: PAL.stone, shadow: PAL.ink });
+    }
+  },
+
+  /* a strip of real meadow floor for the story panels */
+  meadowFloor(ctx, top) {
+    for (let tx = 0; tx < 25; tx++) {
+      ctx.drawImage(Tiles.cache.dirtTop[tx % 3], tx * 16, top);
+      ctx.drawImage(Tiles.cache.dirt[(tx + 1) % 2], tx * 16, top + 16);
+      ctx.drawImage(Tiles.cache.dirt[tx % 2], tx * 16, top + 32);
+    }
+  },
+
+  sceneMeadow(ctx, game, t) {
+    Backgrounds.draw(ctx, 'dusk', 0, 0, game.time);
+    this.meadowFloor(ctx, 184);
+
+    for (let i = 0; i < 9; i++) {
+      const mx = 14 + i * 42;
+      const my = 176 + (i % 3) * 3;
+      ctx.drawImage(Sprites.marigold, mx, my);
+    }
+
+    const breathe = Math.sin(game.time * 2) > 0 ? 0 : 1;
+    ctx.drawImage(Sprites.princess, 248, 166 + breathe);
+
+    const idle = Sprites.hero.idle;
+    ctx.drawImage(Sprites.facing(idle, 1), 150, 166);
+
+    if (t > 1.4 && t < 4.6) {
+      this.sayBox(ctx, 'SnoozyPaw', 'THE BLOOMS ARE EARLY THIS YEAR. IT IS A GOOD OMEN.');
+    } else if (t >= 4.6) {
+      this.sayBox(ctx, 'Finn', 'A GOOD OMEN. I WILL BRING YOU A CROWN OF THEM.');
+    }
+  },
+
+  sceneShadow(ctx, game, t) {
+    Backgrounds.draw(ctx, 'dusk', 0, 0, game.time);
+    this.meadowFloor(ctx, 184);
+
+    /* night creeps over the meadow */
+    const dark = U.clamp(t / 5, 0, 1) * 0.72;
+    ctx.fillStyle = 'rgba(11,9,18,' + dark.toFixed(3) + ')';
+    ctx.fillRect(0, 0, 400, 224);
+
+    for (let i = 0; i < 9; i++) {
+      const shake = t > 1.1 ? Math.round(Math.sin(game.time * 40 + i) * 2) : 0;
+      ctx.drawImage(Sprites.marigold, 14 + i * 42 + shake, 176 + (i % 3) * 3);
+    }
+
+    ctx.drawImage(Sprites.princess, 248, 166);
+
+    /* the beast claws up out of the dark on the right */
+    const rise = U.clamp((t - 0.9) / 1.4, 0, 1);
+    if (rise > 0) {
+      const by = 208 - rise * 34;
+      const img = (t > 1.6 && Math.floor(t * 6) % 2 === 0) ? Sprites.beastRoar : Sprites.beast;
+      ctx.drawImage(img, 300, by - 6);
+    }
+
+    /* the shockwave */
+    if (t > 1.2 && t < 1.7) {
+      const w = U.clamp((t - 1.2) / 0.5, 0, 1);
+      ctx.globalAlpha = (1 - w) * 0.5;
+      ctx.fillStyle = PAL.rust;
+      ctx.fillRect(0, 0, 400, 224);
+      ctx.globalAlpha = 1;
+    }
+
+    const idle = Sprites.hero.idle;
+    ctx.drawImage(Sprites.facing(idle, 1), 150, 166);
+
+    if (t > 1.9 && t < 5.2) {
+      this.sayBox(ctx, 'Finn', 'SNOOZYP... NO.');
+    } else if (t >= 5.2) {
+      this.sayBox(ctx, '', 'SOMETHING OLD IS AWAKE.');
+    }
+  },
+
+  sceneTaking(ctx, game, t) {
+    Backgrounds.draw(ctx, 'dusk', 0, 0, game.time);
+    this.meadowFloor(ctx, 184);
+
+    ctx.fillStyle = 'rgba(11,9,18,0.72)';
+    ctx.fillRect(0, 0, 400, 224);
+
+    /* the beast lifts away to the east, carrying her */
+    const lift = U.clamp(t / 4.2, 0, 1);
+    const bx = 290 + lift * 120;
+    const by = 150 - lift * 90;
+    ctx.drawImage(Sprites.beast, bx, by);
+    ctx.drawImage(Sprites.princess, bx + 2, by - 22 + Math.round(Math.sin(game.time * 3) * 1));
+
+    /* Finn runs after them */
+    const run = U.clamp(t / 2.4, 0, 1);
+    const frame = Sprites.hero.run[Math.floor(game.time * 12) % 2];
+    ctx.drawImage(Sprites.facing(frame, 1), 90 + run * 70, 166);
+
+    if (t > 0.9 && t < 4.4) {
+      this.sayBox(ctx, 'SnoozyPaw', 'FINN. FOLLOW THE THORNS. FIND ME.');
+    } else if (t >= 4.4) {
+      this.sayBox(ctx, 'SnoozyPaw', 'IT IS TAKING ME EAST.');
+    }
+  },
+
+  sceneKnight(ctx, game, t) {
+    Backgrounds.draw(ctx, 'night', 0, 0, game.time);
+    this.meadowFloor(ctx, 184);
+
+    ctx.fillStyle = 'rgba(11,9,18,0.66)';
+    ctx.fillRect(0, 0, 400, 224);
+
+    /* the last marigolds of the meadow, still burning */
+    for (let i = 0; i < 5; i++) {
+      ctx.drawImage(Sprites.marigold, 20 + i * 30, 176 + (i % 2) * 2);
+    }
+
+    /* Finn alone, shield up, blade drawn */
+    const ready = U.clamp((t - 0.8) / 1.4, 0, 1);
+    const frame = ready > 0.99 ? Sprites.hero.idle : Sprites.hero.run[Math.floor(game.time * 12) % 2];
+    ctx.drawImage(Sprites.facing(frame, 1), 120, 166);
+    if (ready > 0.5) {
+      ctx.globalAlpha = (ready - 0.5) * 2;
+      ctx.drawImage(Sprites.shield, 104, 168);
+      ctx.globalAlpha = 1;
+    }
+
+    if (t > 1.6 && t < 5.0) {
+      this.sayBox(ctx, 'Finn', 'THEN I WALK INTO THE DARK.');
+    } else if (t >= 5.0) {
+      this.sayBox(ctx, 'Finn', 'SHE IS STILL ALIVE. SO AM I.');
+    }
+
+    if (t > 5.6) {
+      if (Math.floor(game.time * 2) % 2 === 0) {
+        drawText(ctx, 'PRESS SPACE TO RIDE', 200, 132,
+          { align: 'center', color: PAL.white, shadow: PAL.ink });
+      }
+      drawText(ctx, 'ESC TO GO STRAIGHT TO THE ROAD', 200, 144,
+        { align: 'center', color: PAL.cream2, shadow: PAL.ink });
+    }
+  },
+
+  sayBox(ctx, who, text) {
+    const bx = 30, by = 156, bw = 340, bh = 44;
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = PAL.cream;
+    ctx.fillRect(bx, by, bw, 1);
+    ctx.fillRect(bx, by + bh - 1, bw, 1);
+    ctx.fillRect(bx, by, 1, bh);
+    ctx.fillRect(bx + bw - 1, by, 1, bh);
+    if (who) drawText(ctx, who, bx + 8, by + 7, { color: PAL.gold });
+    drawParagraph(ctx, text, bx + 8, by + (who ? 19 : 12), bw - 16, { color: PAL.cream });
+  },
+
   /* ---------- rescue cutscene ---------- */
 
   rescue(ctx, game) {
@@ -419,18 +662,9 @@ const UI = {
     let shown = null;
     for (const l of lines) if (t >= l.at) shown = l;
     if (shown && t < 9.4) {
-      const bx = 30, by = 156, bw = 340, bh = 44;
-      ctx.fillStyle = PAL.ink;
-      ctx.fillRect(bx, by, bw, bh);
-      ctx.fillStyle = PAL.cream;
-      ctx.fillRect(bx, by, bw, 1);
-      ctx.fillRect(bx, by + bh - 1, bw, 1);
-      ctx.fillRect(bx, by, 1, bh);
-      ctx.fillRect(bx + bw - 1, by, 1, bh);
       const who = shown.text.startsWith('SnoozyPaw') ? 'SnoozyPaw' : 'Finn';
-      drawText(ctx, who, bx + 8, by + 7, { color: PAL.gold });
       const body = shown.text.slice(shown.text.indexOf(' ') + 1);
-      drawParagraph(ctx, body, bx + 8, by + 19, bw - 16, { color: PAL.cream });
+      this.sayBox(ctx, who, body);
     }
 
     if (t > 9.4) {
@@ -502,3 +736,46 @@ const UI = {
     ctx.globalAlpha = 1;
   }
 };
+
+/* ---------- the prologue ---------- */
+
+const PROLOGUE = {
+  crawlDur: 9,
+  panelDur: 7,
+  get end() { return this.crawlDur + this.panelDur * 4; },
+  crawlLines: [
+    { text: 'EPISODE I', mul: 2.0, color: PAL.goldLight },
+    { text: 'THE THORN TAKES HER', mul: 1.45, color: PAL.goldLight },
+    { text: '', mul: 1, color: PAL.gold },
+    { text: 'LONG AGO, IN A MEADOW OF GOLD', mul: 1, color: PAL.gold },
+    { text: 'AND THORN, SNOOZYPAW KEPT THE', mul: 1, color: PAL.gold },
+    { text: 'MARIGOLDS AND THE PEACE.', mul: 1, color: PAL.gold },
+    { text: 'BESIDE HER WALKED FINN - A KNIGHT', mul: 1, color: PAL.gold },
+    { text: 'WITH A WOODEN SWORD AND A SHIELD', mul: 1, color: PAL.gold },
+    { text: 'HE HAD NEVER NEEDED.', mul: 1, color: PAL.gold },
+    { text: '', mul: 1, color: PAL.gold },
+    { text: 'BUT THE BRIAR HAD BEEN HUNGRY', mul: 1, color: PAL.gold },
+    { text: 'A LONG WHILE, AND ON THE EVE', mul: 1, color: PAL.gold },
+    { text: 'OF THE HARVEST, IT CAME.', mul: 1, color: PAL.gold }
+  ]
+};
+
+const PROLOGUE_BAKED = [];
+
+const PROLOGUE_STARS = (() => {
+  const rnd = U.rng(90210);
+  const out = [];
+  for (let i = 0; i < 150; i++) {
+    const layer = rnd();
+    out.push({
+      x: rnd() * 400,
+      y: rnd() * 224,
+      l: layer > 0.86 ? 2 : 1,
+      s: 1.5 + layer * 11,
+      b: 0.35 + layer * 0.65,
+      p: rnd() * 6.283,
+      c: layer > 0.92 ? PAL.cream : (layer > 0.7 ? PAL.cream2 : PAL.shadow)
+    });
+  }
+  return out;
+})();

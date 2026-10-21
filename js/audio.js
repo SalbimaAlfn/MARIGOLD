@@ -125,6 +125,8 @@ const AudioSys = {
       case 'down':    this.arp(['E5', 'C5', 'A4', 'F4'], 'square', 0.12, 0.09); break;
       case 'rescue':  this.arp(['C5', 'E5', 'G5', 'C6'], 'triangle', 0.14, 0.11); break;
       case 'win':     this.arp(['C5', 'E5', 'G5', 'C6', 'G5', 'C6'], 'square', 0.13, 0.12); break;
+      case 'roar':    this.tone(88, t, 0.95, 'sawtooth', 0.22, 42); this.tone(132, t, 0.85, 'square', 0.09, 58); this.noise(t, 0.95, 0.13, 240); break;
+      case 'thunder': this.noise(t, 0.7, 0.14, 190); this.tone(58, t, 0.8, 'sawtooth', 0.13, 38); break;
       default: break;
     }
   },

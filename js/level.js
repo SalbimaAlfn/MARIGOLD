@@ -288,7 +288,7 @@ const STAGES = [
     number: 'STAGE 2',
     theme: 'woods',
     music: 'woods',
-    seed: 202,
+    seed: 212,
     chunks: [
       /* 0 — the tree line */
       function () {

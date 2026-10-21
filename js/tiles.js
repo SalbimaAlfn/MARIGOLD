@@ -16,6 +16,9 @@ const Tiles = {
     C.spike = bakeTile((ctx) => this.paintSpike(ctx));
     C.water = [0, 1].map((i) => bakeTile((ctx) => this.paintWater(ctx, i)));
     C.vine = bakeTile((ctx) => this.paintVine(ctx));
+    C.trunk = [0, 1].map((i) => bakeTile((ctx) => this.paintTrunk(ctx, i)));
+    C.mud = [0, 1].map((i) => bakeTile((ctx) => this.paintMud(ctx, i)));
+    C.bramble = bakeTile((ctx) => this.paintBramble(ctx));
   },
 
   /* ---------- tile painters ---------- */
@@ -190,6 +193,71 @@ const Tiles = {
     ctx.fillRect(8, 12, 1, 1);
   },
 
+  /* a wide old trunk: the deep woods are full of them */
+  paintTrunk(ctx, variant) {
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(0, 0, 16, 16);
+    ctx.fillStyle = PAL.woodDark;
+    ctx.fillRect(1, 0, 14, 16);
+    ctx.fillStyle = PAL.wood;
+    ctx.fillRect(2, 0, 10, 16);
+    ctx.fillStyle = PAL.dirtDark;
+    for (let i = 0; i < 5; i++) {
+      const y = Math.floor(U.hash(i * 7 + variant * 19) * 14);
+      const x = 3 + Math.floor(U.hash(i * 13 + variant * 5) * 8);
+      ctx.fillRect(x, y, 1, 4 + Math.floor(U.hash(i * 3) * 3));
+    }
+    ctx.fillStyle = PAL.dirtLight;
+    ctx.fillRect(3 + variant, 2, 1, 5);
+    ctx.fillStyle = PAL.moss;
+    ctx.fillRect(0, 3 + variant * 4, 3, 2);
+    ctx.fillRect(13, 9 - variant * 3, 3, 2);
+    ctx.fillStyle = PAL.leafDark;
+    ctx.fillRect(0, 0, 2, 3);
+    ctx.fillRect(14, 13, 2, 3);
+  },
+
+  /* bog mud: solid, but it looks like it would swallow you */
+  paintMud(ctx, variant) {
+    ctx.fillStyle = '#3b3527';
+    ctx.fillRect(0, 0, 16, 16);
+    ctx.fillStyle = '#4c4533';
+    for (let i = 0; i < 8; i++) {
+      const x = Math.floor(U.hash(i * 9 + variant * 23) * 14);
+      const y = Math.floor(U.hash(i * 17 + variant * 3) * 14);
+      ctx.fillRect(x, y, 2, 1);
+    }
+    ctx.fillStyle = '#2a261c';
+    for (let i = 0; i < 5; i++) {
+      const x = Math.floor(U.hash(i * 5 + variant * 11) * 14);
+      ctx.fillRect(x, 1 + Math.floor(U.hash(i * 3 + variant) * 13), 1, 1);
+    }
+    ctx.fillStyle = '#6b6b52';
+    ctx.fillRect(0, 0, 16, 1);
+    ctx.fillRect(2 + variant * 3, 0, 3, 1);
+  },
+
+  /* bramble: thorny scrub that hurts */
+  paintBramble(ctx) {
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(0, 11, 16, 5);
+    ctx.fillStyle = PAL.leafDark;
+    ctx.fillRect(0, 12, 16, 4);
+    ctx.fillStyle = PAL.moss;
+    ctx.fillRect(1, 8, 2, 5);
+    ctx.fillRect(6, 7, 2, 6);
+    ctx.fillRect(11, 8, 2, 5);
+    ctx.fillStyle = PAL.leaf;
+    ctx.fillRect(0, 11, 2, 2);
+    ctx.fillRect(4, 11, 2, 2);
+    ctx.fillRect(8, 11, 2, 2);
+    ctx.fillRect(12, 11, 2, 2);
+    ctx.fillStyle = PAL.cream2;
+    ctx.fillRect(2, 5, 1, 4);
+    ctx.fillRect(7, 4, 1, 5);
+    ctx.fillRect(12, 5, 1, 4);
+  },
+
   /* ---------- world drawing ---------- */
 
   draw(ctx, level, camX, camY, time) {
@@ -237,6 +305,9 @@ const Tiles = {
           case '^': ctx.drawImage(C.spike, px, py); break;
           case '~': ctx.drawImage(C.water[waterFrame], px, py); break;
           case 'v': ctx.drawImage(C.vine, px, py); break;
+          case 'T': ctx.drawImage(C.trunk[v % 2], px, py); break;
+          case 'M': ctx.drawImage(C.mud[v % 2], px, py); break;
+          case 'B': ctx.drawImage(C.bramble, px, py); break;
           default: break;
         }
       }
@@ -316,6 +387,27 @@ const Tiles = {
         ctx.fillStyle = PAL.rust;
         ctx.fillRect(d.x + 3, d.y - 3, 1, 1);
         ctx.fillRect(d.x - 2, d.y - 4, 1, 1);
+        break;
+      }
+      case 'reed': {
+        ctx.fillStyle = PAL.leafDark;
+        ctx.fillRect(d.x + 1, d.y - 7, 1, 7);
+        ctx.fillRect(d.x + 4, d.y - 10, 1, 10);
+        ctx.fillStyle = PAL.leaf;
+        ctx.fillRect(d.x, d.y - 5, 1, 5);
+        ctx.fillRect(d.x + 3, d.y - 8, 1, 8);
+        ctx.fillStyle = PAL.cream2;
+        ctx.fillRect(d.x + 4, d.y - 12, 1, 3);
+        break;
+      }
+      case 'mushroom': {
+        ctx.fillStyle = PAL.cream2;
+        ctx.fillRect(d.x + 2, d.y - 4, 2, 4);
+        ctx.fillStyle = PAL.rust;
+        ctx.fillRect(d.x, d.y - 7, 6, 3);
+        ctx.fillStyle = PAL.cream;
+        ctx.fillRect(d.x + 1, d.y - 7, 1, 1);
+        ctx.fillRect(d.x + 4, d.y - 7, 1, 1);
         break;
       }
       case 'torch': {
@@ -470,6 +562,8 @@ const Backgrounds = {
     let bands;
     if (theme === 'day') bands = [[0, 54, PAL.skyTop], [54, 104, PAL.skyMid], [104, 156, PAL.skyLow], [156, 224, '#dfe3b4']];
     else if (theme === 'dusk') bands = [[0, 50, PAL.duskTop], [50, 100, PAL.duskMid], [100, 152, PAL.duskLow], [152, 224, '#c98f62']];
+    else if (theme === 'woods') bands = [[0, 58, '#1e3324'], [58, 108, '#2a452d'], [108, 158, '#355738'], [158, 224, '#43684a']];
+    else if (theme === 'marsh') bands = [[0, 60, '#232436'], [60, 112, '#313248'], [112, 160, '#413d52'], [160, 224, '#4e4653']];
     else bands = [[0, 60, PAL.night], [60, 116, PAL.nightMid], [116, 170, PAL.nightSoft], [170, 224, '#252c4c']];
 
     for (let b = 0; b < bands.length; b++) {
@@ -506,6 +600,15 @@ const Backgrounds = {
     } else if (theme === 'day') {
       U.pixelCircle(ctx, 330, 42, 14, PAL.gold);
       U.pixelCircle(ctx, 330, 42, 10, PAL.goldLight);
+    } else if (theme === 'woods') {
+      /* a dim sun filtered through the canopy */
+      U.pixelCircle(ctx, 322, 40, 22, 'rgba(240,200,120,0.10)');
+      U.pixelCircle(ctx, 322, 40, 12, '#cbbd7c');
+      ctx.fillStyle = 'rgba(240,214,140,0.05)';
+      for (let i = 0; i < 4; i++) ctx.fillRect(270 + i * 26, 0, 9, 224);
+    } else if (theme === 'marsh') {
+      U.pixelCircle(ctx, 100, 40, 12, '#b9bccb');
+      U.pixelCircle(ctx, 96, 36, 3, '#dfe1ea');
     } else {
       U.pixelCircle(ctx, 92, 128, 20, PAL.orange);
       U.pixelCircle(ctx, 92, 128, 14, PAL.gold);
@@ -520,6 +623,12 @@ const Backgrounds = {
     } else if (theme === 'dusk') {
       this.paintHills(ctx, 0, w, 172, '#6b5170', 0.8);
       this.paintMill(ctx, 210, 172, '#4a3a55');
+    } else if (theme === 'woods') {
+      this.paintHills(ctx, 0, w, 170, '#2f4a35', 0.9);
+      this.paintTrees(ctx, w, 170, ['#27412f', '#1f3626']);
+    } else if (theme === 'marsh') {
+      this.paintHills(ctx, 0, w, 176, '#2c2f3f', 0.8);
+      this.paintDeadTrees(ctx, w, 176, '#1d1e2b');
     } else {
       this.paintHills(ctx, 0, w, 184, '#232a49', 1.4);
       this.paintKeep(ctx, 120, 184, '#161c33', '#10152a', true);
@@ -534,6 +643,13 @@ const Backgrounds = {
     } else if (theme === 'dusk') {
       this.paintHills(ctx, 13, w, 196, '#7a5a5f', 1.1);
       this.paintReeds(ctx, w, 196);
+    } else if (theme === 'woods') {
+      this.paintHills(ctx, 13, w, 192, '#24402c', 1.2);
+      this.paintTrees(ctx, w, 192, ['#1d3626', '#162b1e']);
+    } else if (theme === 'marsh') {
+      this.paintHills(ctx, 13, w, 198, '#2b2c3c', 1.1);
+      this.paintReeds(ctx, w, 198);
+      this.paintDeadTrees(ctx, w, 198, '#171823');
     } else {
       this.paintHills(ctx, 13, w, 202, '#1f2740', 1.3);
       this.paintThornTrees(ctx, w, 202);
@@ -545,8 +661,27 @@ const Backgrounds = {
       this.paintHills(ctx, 29, w, 212, '#3f6b3f', 1.6);
     } else if (theme === 'dusk') {
       this.paintHills(ctx, 29, w, 214, '#3d2f4a', 1.7);
+    } else if (theme === 'woods') {
+      this.paintHills(ctx, 29, w, 214, '#16281b', 1.6);
+      this.paintTrees(ctx, w, 214, ['#122317', '#0d1b12']);
+    } else if (theme === 'marsh') {
+      this.paintHills(ctx, 29, w, 216, '#1c1d28', 1.7);
     } else {
       this.paintHills(ctx, 29, w, 216, '#141a2e', 1.8);
+    }
+  },
+
+  paintDeadTrees(ctx, w, groundY, col) {
+    const rnd = U.rng(83);
+    for (let i = 0; i < 9; i++) {
+      const x = Math.floor(rnd() * w);
+      const th = 14 + Math.floor(rnd() * 11);
+      ctx.fillStyle = col;
+      ctx.fillRect(x, groundY - th, 2, th + 10);
+      ctx.fillRect(x - 4, groundY - th + 3, 5, 1);
+      ctx.fillRect(x + 1, groundY - th + 6, 5, 1);
+      ctx.fillRect(x - 3, groundY - th + 1, 1, 4);
+      ctx.fillRect(x + 2, groundY - th + 4, 1, 3);
     }
   },
 
@@ -672,6 +807,15 @@ const Backgrounds = {
         ctx.fillRect(bx, by, 2, 1);
         ctx.fillRect(bx + 3, by, 2, 1);
         ctx.fillRect(bx + 2, by - 1, 1, 1);
+      }
+    } else if (theme === 'marsh') {
+      /* low mist drifting over the bog */
+      ctx.fillStyle = 'rgba(150,160,175,0.09)';
+      for (let i = 0; i < 4; i++) {
+        const y = 118 + i * 24;
+        const x = Math.round(((time * (5 + i * 2) - camX * 0.13) % 520) - 60);
+        ctx.fillRect(x, y, 96, 5);
+        ctx.fillRect(x + 130, y + 6, 60, 4);
       }
     } else {
       const rnd = U.rng(theme === 'dusk' ? 91 : 97);

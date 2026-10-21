@@ -289,6 +289,9 @@ class Player {
         } else if (ch === 'v') {
           const r = { x: tx * 16 + 4, y: ty * 16, w: 8, h: 16 };
           if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y);
+        } else if (ch === 'B') {
+          const r = { x: tx * 16 + 1, y: ty * 16 + 5, w: 14, h: 11 };
+          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y);
         } else if (ch === '~') {
           const r = { x: tx * 16, y: ty * 16 + 2, w: 16, h: 14 };
           if (U.overlap(box, r)) { game.drown(); return; }
@@ -637,6 +640,210 @@ class Bat extends Enemy {
     if (this.flash > 0 && Math.floor(game.time * 30) % 2 === 0) return;
     const pair = Sprites.bat[Math.floor(this.t * 8) % 2];
     ctx.drawImage(pair.r, Math.round(this.x), Math.round(this.y));
+  }
+}
+
+/* sawblade — rides a rail; the sword only rings off it */
+class Sawblade extends Enemy {
+  constructor(x, y, dist, speed) {
+    super(x, y, 18, 18);
+    this.homeX = x;
+    this.dist = dist * 16;
+    this.railX0 = x + 9;
+    this.railX1 = x + 9 + this.dist;
+    this.speed = speed || 46;
+    this.dir = 1;
+    this.stompable = false;
+    this.damage = 1;
+  }
+
+  update(dt, game) {
+    this.t += dt;
+    if (this.flash > 0) this.flash -= dt;
+    this.x += this.dir * this.speed * dt;
+    if (this.x >= this.homeX + this.dist) { this.x = this.homeX + this.dist; this.dir = -1; }
+    if (this.x <= this.homeX) { this.x = this.homeX; this.dir = 1; }
+  }
+
+  onSword(player, game) {
+    AudioSys.sfx('clank');
+    game.freeze = 0.04;
+    game.shake = Math.max(game.shake, 2);
+    game.spark(this.cx, this.cy);
+    return true;
+  }
+
+  stomp(player, game) { /* the blade does not care what lands on it */ }
+
+  draw(ctx, game) {
+    const cx = Math.round(this.cx);
+    const cy = Math.round(this.cy);
+
+    /* the rail it rides */
+    ctx.fillStyle = PAL.inkSoft;
+    ctx.fillRect(Math.round(this.railX0), cy - 1, Math.round(this.railX1 - this.railX0), 2);
+    ctx.fillStyle = PAL.stoneDark;
+    ctx.fillRect(Math.round(this.railX0), cy, 2, 3);
+    ctx.fillRect(Math.round(this.railX1) - 2, cy, 2, 3);
+
+    /* the blade */
+    const spin = this.t * 16;
+    ctx.fillStyle = PAL.metalDark;
+    for (let i = 0; i < 6; i++) {
+      const a = spin + i * 1.047;
+      const px = cx + Math.round(Math.cos(a) * 7);
+      const py = cy + Math.round(Math.sin(a) * 7);
+      ctx.fillRect(px - 1, py - 1, 3, 3);
+    }
+    ctx.fillStyle = PAL.metal;
+    ctx.fillRect(cx - 3, cy - 3, 6, 6);
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(cx - 2, cy - 2, 2, 2);
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(cx - 1, cy - 1, 2, 2);
+  }
+}
+
+/* marsh wasp — hovers, then stings */
+class Wasp extends Enemy {
+  constructor(x, y, range) {
+    super(x, y, 12, 10);
+    this.homeX = x;
+    this.homeY = y;
+    this.range = (range || 3) * 16;
+    this.hp = 1;
+    this.dive = 0;
+    this.stompable = false;
+    this.damage = 1;
+  }
+
+  update(dt, game) {
+    this.t += dt;
+    if (this.flash > 0) this.flash -= dt;
+    const p = game.player;
+    const dx = p.cx - this.cx;
+    const dy = p.cy - this.cy;
+
+    if (this.dive > 0) {
+      this.dive -= dt;
+      this.vx = U.approach(this.vx, U.clamp(dx, -100, 100), 320 * dt);
+      this.vy = U.approach(this.vy, U.clamp(dy, -92, 92), 320 * dt);
+    } else {
+      this.vx = U.approach(this.vx, 0, 240 * dt);
+      this.vy = U.approach(this.vy, 0, 240 * dt);
+      if (Math.abs(dx) < 100 && Math.abs(dy) < 72) {
+        this.dive = 0.85;
+        AudioSys.sfx('attack');
+      }
+    }
+
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    /* leash around the nest */
+    const lx = this.homeX + this.range;
+    const rx = this.homeX - this.range;
+    if (this.x < rx) { this.x = rx; this.vx = Math.abs(this.vx); }
+    if (this.x > lx) { this.x = lx; this.vx = -Math.abs(this.vx); }
+    if (this.y < this.homeY - 46) { this.y = this.homeY - 46; this.vy = Math.abs(this.vy); }
+    if (this.y > this.homeY + 38) { this.y = this.homeY + 38; this.vy = -Math.abs(this.vy); }
+  }
+
+  onSword(player, game) {
+    this.hurt(1, game);
+    return false;
+  }
+
+  stomp(player, game) { /* too quick to land on */ }
+
+  draw(ctx, game) {
+    if (this.flash > 0 && Math.floor(game.time * 30) % 2 === 0) return;
+    const x = Math.round(this.x);
+    const y = Math.round(this.y + Math.sin(this.t * 9) * 1);
+    const dir = this.vx >= 0 ? 1 : -1;
+
+    /* wings */
+    const flap = Math.floor(this.t * 18) % 2;
+    ctx.fillStyle = 'rgba(233,240,247,0.75)';
+    ctx.fillRect(x + (dir > 0 ? 1 : 9), y - 2 + flap, 4, 2);
+    ctx.fillRect(x + (dir > 0 ? 1 : 9), y + 2 - flap, 4, 2);
+
+    /* body */
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(x + 1, y + 1, 10, 8);
+    ctx.fillStyle = PAL.gold;
+    ctx.fillRect(x + 2, y + 2, 8, 6);
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(x + 5, y + 3, 2, 4);
+    /* head and sting */
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(x + (dir > 0 ? 9 : 1), y + 2, 3, 6);
+    ctx.fillStyle = PAL.cream2;
+    ctx.fillRect(x + (dir > 0 ? 3 : 7), y + 4, 2, 2);
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(x + (dir > 0 ? 0 : 10), y + 5, 2, 2);
+  }
+}
+
+/* boulder — rolls, and turns at a wall or a drop */
+class Boulder extends Enemy {
+  constructor(x, y, dist, speed) {
+    super(x, y, 16, 16);
+    this.dir = 1;
+    this.speed = speed || 42;
+    this.hp = 3;
+    this.stompable = false;
+    this.damage = 1;
+  }
+
+  update(dt, game) {
+    this.t += dt;
+    if (this.flash > 0) this.flash -= dt;
+    this.vy = Math.min(this.vy + PHYS.GRAV * dt, PHYS.MAX_FALL);
+    this.vx = this.dir * this.speed;
+    if (moveX(this, game.level, dt)) this.dir *= -1;
+    moveY(this, game.level, dt);
+
+    /* no floor ahead: turn back */
+    const fx = this.dir > 0 ? this.x + this.w + 2 : this.x - 2;
+    const tx = Math.floor(fx / 16);
+    const ty = Math.floor((this.y + this.h + 2) / 16);
+    if (!game.level.solidAt(tx, ty) && !game.level.oneWayAt(tx, ty)) this.dir *= -1;
+  }
+
+  onSword(player, game) {
+    this.hurt(1, game);
+    return false;
+  }
+
+  stomp(player, game) {
+    this.hurt(1, game);
+  }
+
+  draw(ctx, game) {
+    this.shadow(ctx, 1);
+    if (this.flash > 0 && Math.floor(game.time * 30) % 2 === 0) return;
+    const cx = Math.round(this.cx);
+    const cy = Math.round(this.cy);
+    const roll = Math.floor(this.t * 9) % 4;
+
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(cx - 7, cy - 6, 14, 13);
+    ctx.fillRect(cx - 6, cy - 7, 12, 14);
+    ctx.fillStyle = PAL.stoneDark;
+    ctx.fillRect(cx - 6, cy - 6, 12, 11);
+    ctx.fillStyle = PAL.stone;
+    ctx.fillRect(cx - 4, cy - 5, 5, 4);
+    ctx.fillRect(cx + 1, cy + 1, 4, 3);
+    ctx.fillStyle = PAL.stoneLight;
+    if (roll === 0) ctx.fillRect(cx - 2, cy - 4, 2, 2);
+    else if (roll === 1) ctx.fillRect(cx + 2, cy - 2, 2, 2);
+    else if (roll === 2) ctx.fillRect(cx - 1, cy + 2, 2, 2);
+    else ctx.fillRect(cx + 3, cy - 5, 2, 2);
+    /* moss on the underside */
+    ctx.fillStyle = PAL.moss;
+    ctx.fillRect(cx - 4, cy + 4, 3, 2);
+    ctx.fillRect(cx + 2, cy + 4, 2, 2);
   }
 }
 

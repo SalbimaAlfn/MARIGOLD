@@ -48,7 +48,7 @@ class Level {
     if (tx < 0 || tx >= this.w) return true;   // walls of the world
     if (ty < 0 || ty >= this.h) return false;  // open sky, open pit
     const ch = this.grid[ty][tx];
-    return ch === '#' || ch === '=' || ch === 'X';
+    return ch === '#' || ch === '=' || ch === 'X' || ch === 'T' || ch === 'M';
   }
 
   oneWayAt(tx, ty) {
@@ -58,7 +58,7 @@ class Level {
 
   hazardAt(tx, ty) {
     const ch = this.charAt(tx, ty);
-    return ch === '^' || ch === '~' || ch === 'v';
+    return ch === '^' || ch === '~' || ch === 'v' || ch === 'B';
   }
 
   breakCrate(tx, ty) {
@@ -92,7 +92,7 @@ class Level {
     for (let tx = 1; tx < this.w - 1; tx++) {
       for (let ty = 8; ty < 17; ty++) {
         const ch = this.grid[ty][tx];
-        if (ch !== '#' && ch !== '=') continue;
+        if (ch !== '#' && ch !== '=' && ch !== 'M') continue;
         if (this.grid[ty - 1][tx] !== ' ') continue;
         if (this.isOccupied(tx, ty) || this.isOccupied(tx, ty - 1)) continue;
         const r = rnd();
@@ -103,6 +103,18 @@ class Level {
         let type;
         if (theme === 'keep') {
           type = pick < 0.5 ? 'rubble' : 'thorn';
+        } else if (theme === 'woods') {
+          if (pick < 0.26) type = 'tuft';
+          else if (pick < 0.58) type = 'bush';
+          else if (pick < 0.74) type = 'flower';
+          else if (pick < 0.9) type = 'thorn';
+          else type = 'rock';
+        } else if (theme === 'marsh') {
+          if (pick < 0.3) type = 'tuft';
+          else if (pick < 0.58) type = 'reed';
+          else if (pick < 0.74) type = 'flower';
+          else if (pick < 0.9) type = 'mushroom';
+          else type = 'rock';
         } else {
           if (pick < 0.3) type = 'tuft';
           else if (pick < 0.55) type = 'bush';
@@ -151,6 +163,13 @@ class Chunk {
   crate(x, y) { this.put(x, y, 'X'); }
   spike(x, y, w = 1) { this.rect(x, y, w, 1, '^'); }
   vine(x, y, h) { this.rect(x, y, 1, h, 'v'); }
+  /* new ground kinds */
+  tree(x, y, h = 2) { this.rect(x, y, 1, h, 'T'); }
+  mud(x, y, w = 1, h = 1) { this.rect(x, y, w, h, 'M'); }
+  bramble(x, y, w = 1) { this.rect(x, y, w, 1, 'B'); }
+  saw(x, y, dist = 4, speed = 46) { this.l.add('saw', { tx: this.ox + x, ty: y, dist, speed }); }
+  wasp(x, y, range = 3) { this.l.add('wasp', { tx: this.ox + x, ty: y, range }); }
+  boulder(x, y, dist = 5, speed = 40) { this.l.add('boulder', { tx: this.ox + x, ty: y, dist, speed }); }
 
   spawn(x, y) { this.l.spawnTile = { tx: this.ox + x, ty: y }; }
   enemy(kind, x, y) { this.l.add(kind, { tx: this.ox + x, ty: y }); }
@@ -264,9 +283,100 @@ const STAGES = [
   },
 
   {
+    id: 'woods',
+    name: 'DEEP WOODS',
+    number: 'STAGE 2',
+    theme: 'woods',
+    music: 'woods',
+    seed: 202,
+    chunks: [
+      /* 0 — the tree line */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(7, 12, 'THE THORN WOODS');
+        this.tree(12, 11, 2);
+        this.flower(16, 12);
+        this.flower(18, 12);
+        this.crate(21, 12);
+        this.enemy('beetle', 23, 12);
+      },
+      /* 1 — bramble beds */
+      function () {
+        this.ground();
+        this.bramble(8, 12, 2);
+        this.tree(13, 11, 2);
+        this.bramble(16, 12, 2);
+        this.platform(19, 11, 3);
+        this.flower(20, 10);
+        this.enemy('imp', 5, 12);
+        this.enemy('imp', 22, 12);
+        this.flower(14, 12);
+      },
+      /* 2 — the saw rail */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.saw(9, 11, 5, 52);
+        this.tree(16, 11, 2);
+        this.platform(19, 10, 3);
+        this.flower(20, 9);
+        this.flower(14, 12);
+        this.enemy('beetle', 23, 12);
+      },
+      /* 3 — up the trunks */
+      function () {
+        this.ground();
+        this.tree(5, 11, 2);
+        this.platform(8, 11, 2);
+        this.platform(12, 9, 2);
+        this.platform(16, 7, 2);
+        this.flower(13, 8);
+        this.flower(17, 6);
+        this.wasp(11, 9, 3);
+        this.enemy('imp', 21, 12);
+        this.flower(23, 12);
+      },
+      /* 4 — the thorn floor */
+      function () {
+        this.ground();
+        this.ceiling(7);
+        this.bramble(9, 12, 3);
+        this.bramble(16, 12, 2);
+        this.tree(13, 11, 2);
+        this.enemy('imp', 6, 12);
+        this.flower(19, 12);
+        this.flower(21, 12);
+      },
+      /* 5 — the rolling stones */
+      function () {
+        this.ground();
+        this.rect(2, 11, 1, 2, '=');
+        this.rect(15, 11, 1, 2, '=');
+        this.boulder(6, 12, 0, 42);
+        this.checkpoint(17, 12);
+        this.platform(18, 10, 3);
+        this.flower(19, 9);
+        this.enemy('imp', 21, 12);
+        this.flower(23, 12);
+      },
+      /* 6 — the clearing */
+      function () {
+        this.ground();
+        this.torch(4, 13);
+        this.torch(17, 13);
+        this.flower(8, 12);
+        this.flower(11, 12);
+        this.enemy('imp', 14, 12);
+        this.door(20, 12, 'gate');
+      }
+    ]
+  },
+
+  {
     id: 'mill',
     name: 'MILLBROOK',
-    number: 'STAGE 2',
+    number: 'STAGE 3',
     theme: 'dusk',
     music: 'mill',
     seed: 202,
@@ -374,9 +484,111 @@ const STAGES = [
   },
 
   {
+    id: 'marsh',
+    name: 'SABLE MARSH',
+    number: 'STAGE 4',
+    theme: 'marsh',
+    music: 'marsh',
+    seed: 404,
+    chunks: [
+      /* 0 — the bog edge */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(5, 12, 'SABLE MARSH');
+        this.mud(8, 12, 3, 1);
+        this.flower(9, 11);
+        this.water(14, 18);
+        this.ground(19, 24);
+        this.mover(15, 11, 2, 'x', 3, 42);
+        this.flower(21, 12);
+        this.enemy('beetle', 23, 12);
+      },
+      /* 1 — the mud flats */
+      function () {
+        this.ground(0, 8);
+        this.checkpoint(2, 12);
+        this.water(9, 15);
+        this.ground(16, 24);
+        this.mud(4, 12, 3, 1);
+        this.flower(5, 11);
+        this.crumble(10, 11, 2);
+        this.platform(13, 11, 2);
+        this.flower(14, 10);
+        this.mover(15, 10, 2, 'x', 2, 40);
+        this.flower(19, 12);
+        this.enemy('beetle', 22, 12);
+      },
+      /* 2 — the wasp nest */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.ceiling(7);
+        this.vine(11, 9, 2);
+        this.vine(17, 9, 2);
+        this.wasp(9, 9, 4);
+        this.wasp(18, 8, 4);
+        this.mud(6, 12, 2, 1);
+        this.flower(7, 11);
+        this.flower(14, 12);
+      },
+      /* 3 — the sinking bog */
+      function () {
+        this.ground(0, 4);
+        this.water(5, 17);
+        this.ground(18, 24);
+        this.crumble(7, 11, 2);
+        this.platform(10, 10, 2);
+        this.flower(11, 9);
+        this.mover(12, 10, 2, 'x', 3, 46);
+        this.wasp(13, 8, 3);
+        this.flower(20, 12);
+      },
+      /* 4 — the mud mounds */
+      function () {
+        this.ground();
+        this.mud(4, 11, 3, 2);
+        this.flower(5, 10);
+        this.rect(9, 11, 1, 2, '=');
+        this.rect(17, 11, 1, 2, '=');
+        this.boulder(12, 12, 0, 38);
+        this.checkpoint(3, 12);
+        this.enemy('imp', 20, 12);
+        this.flower(23, 12);
+      },
+      /* 5 — the reed beds */
+      function () {
+        this.ground(0, 3);
+        this.water(4, 18);
+        this.ground(19, 24);
+        this.mover(5, 11, 2, 'x', 4, 48);
+        this.platform(11, 10, 2);
+        this.flower(12, 9);
+        this.mover(14, 9, 2, 'x', 3, 44);
+        this.wasp(10, 7, 4);
+        this.flower(21, 12);
+        this.enemy('beetle', 23, 12);
+      },
+      /* 6 — the reed gate */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.torch(5, 13);
+        this.torch(16, 13);
+        this.flower(8, 12);
+        this.flower(11, 12);
+        this.enemy('imp', 13, 12);
+        this.flower(15, 12);
+        this.crate(17, 12);
+        this.door(20, 12, 'gate');
+      }
+    ]
+  },
+
+  {
     id: 'keep',
     name: 'BRIAR KEEP',
-    number: 'STAGE 3',
+    number: 'STAGE 5',
     theme: 'night',
     music: 'keep',
     seed: 303,

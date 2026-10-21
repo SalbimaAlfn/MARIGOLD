@@ -45,7 +45,9 @@ const Game = {
 
   BLURBS: [
     'A MORNING WALK, PAST THE BRAMBLE IMPS.',
+    'THE TREES STAND CLOSE. THE BLADE RINGS.',
     'THE MILL IS STILL. THE WATER IS NOT.',
+    'THE BOG KEEPS WHAT IT TAKES.',
     'PAST THE GATE, THE KEEP WAITS IN MOONLIGHT.'
   ],
 
@@ -154,6 +156,15 @@ const Game = {
         }
         case 'pod':
           this.enemies.push(new Pod(s.tx * 16 + 8, s.ty * 16));
+          break;
+        case 'saw':
+          this.enemies.push(new Sawblade(s.tx * 16 - 1, s.ty * 16, s.dist, s.speed));
+          break;
+        case 'wasp':
+          this.enemies.push(new Wasp(s.tx * 16 + 2, s.ty * 16, s.range));
+          break;
+        case 'boulder':
+          this.enemies.push(new Boulder(s.tx * 16, s.ty * 16, s.dist, s.speed));
           break;
         case 'flower':
         case 'violet': {

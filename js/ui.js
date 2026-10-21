@@ -253,6 +253,8 @@ const UI = {
     let sky, hill, ground;
     if (theme === 'day') { sky = PAL.skyMid; hill = PAL.leaf; ground = PAL.leafDark; }
     else if (theme === 'dusk') { sky = PAL.duskMid; hill = '#7a5a5f'; ground = '#3d2f4a'; }
+    else if (theme === 'woods') { sky = '#2a452d'; hill = '#1d3626'; ground = '#16281b'; }
+    else if (theme === 'marsh') { sky = '#313248'; hill = '#2b2c3c'; ground = '#1c1d28'; }
     else { sky = PAL.nightSoft; hill = '#1f2740'; ground = '#141a2e'; }
     ctx.fillStyle = sky;
     ctx.fillRect(x, y, w, h);
@@ -263,7 +265,7 @@ const UI = {
     }
     ctx.fillStyle = ground;
     ctx.fillRect(x, y + h - 12, w, 12);
-    ctx.fillStyle = theme === 'keep' ? PAL.stoneDark : PAL.dirt;
+    ctx.fillStyle = theme === 'keep' ? PAL.stoneDark : (theme === 'marsh' ? '#4c4533' : PAL.dirt);
     ctx.fillRect(x, y + h - 10, w, 10);
     /* door silhouette */
     ctx.fillStyle = PAL.ink;
@@ -298,7 +300,11 @@ const UI = {
     ctx.fillRect(0, 0, 400, 224);
 
     /* theme stripe */
-    const stripe = def.theme === 'day' ? PAL.leaf : def.theme === 'dusk' ? '#7a5a5f' : PAL.nightSoft;
+    const stripe = def.theme === 'day' ? PAL.leaf
+      : def.theme === 'dusk' ? '#7a5a5f'
+        : def.theme === 'woods' ? '#355738'
+          : def.theme === 'marsh' ? '#413d52'
+            : PAL.nightSoft;
     ctx.fillStyle = stripe;
     ctx.fillRect(0, 62, 400, 3);
     ctx.fillRect(0, 156, 400, 3);

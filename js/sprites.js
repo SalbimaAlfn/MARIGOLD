@@ -3,10 +3,12 @@
 
 const Sprites = {
   hero: null,
+  keeper: null,
   imp: null,
   beetle: null,
   bat: null,
   guard: null,
+  husk: null,
   shield: null,
   princess: null,
   princessWeak: null,
@@ -14,6 +16,9 @@ const Sprites = {
   beastRoar: null,
   marigold: null,
   violet: null,
+  bloom: null,
+  bloomDead: null,
+  glint: null,
   pod: null,
   lantern: null,
   lanternLit: null,
@@ -32,10 +37,24 @@ const Sprites = {
       kneel: this.pair(bakeSprite(HERO_KNEEL))
     };
 
+    /* SnoozyPaw, the keeper: no sword, no shield, and a way to grow things */
+    this.keeper = {
+      idle: this.pair(this.compose(KEEPER_TOP, KEEPER_LEGS.idle)),
+      run: [
+        this.pair(this.compose(KEEPER_TOP, KEEPER_LEGS.runA)),
+        this.pair(this.compose(KEEPER_TOP, KEEPER_LEGS.runB))
+      ],
+      jump: this.pair(this.compose(KEEPER_TOP, KEEPER_LEGS.jump)),
+      fall: this.pair(this.compose(KEEPER_TOP, KEEPER_LEGS.fall)),
+      hurt: this.pair(this.compose(KEEPER_TOP, KEEPER_LEGS.fall)),
+      kneel: this.pair(bakeSprite(KEEPER_KNEEL))
+    };
+
     this.imp = [this.pair(bakeSprite(IMP_A)), this.pair(bakeSprite(IMP_B))];
     this.beetle = [this.pair(bakeSprite(BEETLE_A)), this.pair(bakeSprite(BEETLE_B))];
     this.bat = [this.pair(bakeSprite(BAT_UP)), this.pair(bakeSprite(BAT_DOWN))];
     this.guard = [this.pair(bakeSprite(GUARD)), this.pair(bakeSprite(GUARD2))];
+    this.husk = [this.pair(bakeSprite(HUSK_A)), this.pair(bakeSprite(HUSK_B))];
     this.shield = bakeSprite(SHIELD);
     this.princess = bakeSprite(PRINCESS);
     this.princessWeak = bakeSprite(PRINCESS_WEAK);
@@ -43,10 +62,14 @@ const Sprites = {
     this.beastRoar = bakeSprite(BEAST_ROAR);
     this.marigold = bakeSprite(MARIGOLD);
     this.violet = bakeSprite(VIOLET);
+    this.bloom = [bakeSprite(BLOOM_SPROUT), bakeSprite(BLOOM_BUD), bakeSprite(BLOOM_FULL)];
+    this.bloomDead = bakeSprite(BLOOM_DEAD);
+    this.glint = bakeSprite(GLINT);
     this.pod = bakeSprite(POD);
     this.lantern = bakeSprite(LANTERN);
     this.lanternLit = bakeSprite(LANTERN_LIT);
     this.sign = bakeSprite(SIGN);
+    this.light = this.makeLight(72);
   },
 
   pair(cv) { return { r: cv, l: flipSprite(cv) }; },
@@ -59,7 +82,37 @@ const Sprites = {
     });
     return bakeSprite(topRows.concat(legs));
   },
-  facing(frame, dir) { return dir < 0 ? frame.l : frame.r; }
+  facing(frame, dir) { return dir < 0 ? frame.l : frame.r; },
+
+  /* the keeper's light: a dithered warm disc, baked once */
+  makeLight(size) {
+    const cv = document.createElement('canvas');
+    cv.width = size;
+    cv.height = size;
+    const c = cv.getContext('2d');
+    const img = c.createImageData(size, size);
+    const r = size / 2;
+    const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - r + 0.5;
+        const dy = y - r + 0.5;
+        const d = Math.sqrt(dx * dx + dy * dy) / r;
+        let a = 0;
+        if (d < 1) {
+          a = Math.pow(1 - d, 1.7);
+          if (a < bayer[(y & 3) * 4 + (x & 3)] / 16) a = 0;
+        }
+        const i = (y * size + x) * 4;
+        img.data[i] = 255;
+        img.data[i + 1] = 236;
+        img.data[i + 2] = 176;
+        img.data[i + 3] = Math.round(a * 255);
+      }
+    }
+    c.putImageData(img, 0, 0);
+    return cv;
+  }
 };
 
 /* ---------- baking ---------- */
@@ -183,6 +236,191 @@ const HERO_KNEEL = [
   '..kddk.kddddk.....',
   '..kbbk.kbbbbk.....',
   '..kkkk.kkkkkk.....'
+];
+
+/* ---------- SnoozyPaw, the keeper: 18 wide, 20 tall.
+   A flower crown, a green dress, boots under the hem. ---------- */
+
+const KEEPER_TOP = [
+  '.....kmmmmmmk.....',
+  '....kmmmmmmmmk....',
+  '...kHHHmmmmHHHk...',
+  '..kHHHHHHHHHHk....',
+  '..kHHffffffHHk....',
+  '..kHffEfffEffk....',
+  '..kHffEfffEffk....',
+  '..kHHffffffHHk....',
+  '...kHffffffHk.....',
+  '.....kffffk.......',
+  '..kffkeeeeek......',
+  '..kffkecccek......',
+  '..kffkemmmmek.....',
+  '.keeeeeeeeeeeek...',
+  'keeeeeeeeeeeeeeek.',
+  'keeeeeeeeeeeeeeek.',
+  '..kkkkkkkkkkkkkk..'
+];
+
+const KEEPER_LEGS = {
+  idle: [
+    '.....kxxxxxxk.....',
+    '.....kxxxxxxk.....',
+    '....kxxxkkxxxk....'
+  ],
+  runA: [
+    '....kxxxxk.kxxxk..',
+    '...kxxxk...kxxxk..',
+    '..kxxxxk...kxxxxk.'
+  ],
+  runB: [
+    '.....kxxxxxxk.....',
+    '....kxxxkkxxxk....',
+    '...kxxxk...kxxxk..'
+  ],
+  jump: [
+    '.....kxxxxxxk.....',
+    '.....kxxxxxxk.....',
+    '.....kxxxxxxk.....'
+  ],
+  fall: [
+    '.....kxxxxxxk.....',
+    '....kxxxxk.kxxxk..',
+    '....kxxxxk.kxxxk..'
+  ]
+};
+
+/* ---------- SnoozyPaw on one knee: 18 wide, 20 tall ---------- */
+
+const KEEPER_KNEEL = [
+  '.....kmmmmmmk.....',
+  '....kmmmmmmmmk....',
+  '...kHHHmmmmHHHk...',
+  '..kHHHHHHHHHHk....',
+  '..kHHffffffHHk....',
+  '..kHffEfffEffk....',
+  '..kHffEfffEffk....',
+  '..kHHffffffHHk....',
+  '...kHffffffHk.....',
+  '.....kffffk.......',
+  '..kffkeeeeek......',
+  '..kffkecccek......',
+  '..kffkemmmmek.....',
+  '.keeeeeeeeeeeek...',
+  'keeeeeeeeeeeeeeek.',
+  'keeeeeeeeeeeeeeek.',
+  '..kkkkkkkkkkkkkk..',
+  '...kxxxxxxk.......',
+  '..kxxxk..kxxxk....',
+  '..kkkkk..kkkkk....'
+];
+
+/* ---------- the bloom she grows: 16 wide, 10 tall.
+   The head fills the top eight rows - that is the surface you stand on -
+   and two rows of leaf hang under it. ---------- */
+
+const BLOOM_SPROUT = [
+  '.......kk.......',
+  '......keeek.....',
+  '.....keeeeek....',
+  '.....keeek......',
+  '......kek.......',
+  '......kek.......',
+  '......kek.......',
+  '......kek.......',
+  '......kek.......',
+  '.....kkkkk......'
+];
+
+const BLOOM_BUD = [
+  '......kkkk......',
+  '.....kmmmmk.....',
+  '....kmmmmmmk....',
+  '....kmgmmgmk....',
+  '....kmmmmmmk....',
+  '.....kmmmmk.....',
+  '.....keeek......',
+  '.....keeek......',
+  '......kek.......',
+  '.....kkkkk......'
+];
+
+const BLOOM_FULL = [
+  '..kkmmmmmmmmkk..',
+  '.kmmmmmmmmmmmmk.',
+  'kmmmmmmmmmmmmmmk',
+  'kmmggmmmmggmmmmk',
+  'kmmmmmmmmmmmmmmk',
+  'kmmmmmmmmmmmmmmk',
+  '.kmmmmmmmmmmmmk.',
+  '..kkmmmmmmmmkk..',
+  '....kkeeeekk....',
+  '.....keeeek.....'
+];
+
+/* the same bloom, spent */
+const BLOOM_DEAD = BLOOM_FULL.map(function (r) {
+  return r.replace(/m/g, 'x').replace(/g/g, 'x').replace(/e/g, 'D');
+});
+
+/* ---------- a glint: only visible in the keeper's light ---------- */
+
+const GLINT = [
+  '...gg...',
+  '..gwwg..',
+  '.gwmmwg.',
+  'gwmmmmwg',
+  'gwmmmmwg',
+  '.gwmmwg.',
+  '..gwwg..',
+  '...gg...'
+];
+
+/* ---------- a husk: the things the first briar left behind ---------- */
+
+const HUSK_A = [
+  '....kkkkkkkk....',
+  '...kssssssssk...',
+  '..ksxxxxxxxxsk..',
+  '..ksxEEkkEExsk..',
+  '..ksxEEkkEExsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '...kssssssssk...',
+  '....kssssssk....',
+  '..ksxxxxxxxxsk..',
+  '.ksxkxxxxxxkxsk.',
+  '.ksxkxxxxxxkxsk.',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '.ksxkxxkxxkxxsk.',
+  '..ksxxxxxxxxsk..',
+  '..kkkkkkkkkkkk..'
+];
+
+const HUSK_B = [
+  '....kkkkkkkk....',
+  '...kssssssssk...',
+  '..ksxxxxxxxxsk..',
+  '..ksxEEkkEExsk..',
+  '..ksxEEkkEExsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '...kssssssssk...',
+  '....kssssssk....',
+  '..ksxxxxxxxxsk..',
+  '.ksxkxxxxxxkxsk.',
+  '.ksxkxxxxxxkxsk.',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '..ksxxxxxxxxsk..',
+  '.ksxkxxkxxkxxsk.',
+  '..kkkkkkkkkkkk..'
 ];
 
 /* ---------- enemies ---------- */

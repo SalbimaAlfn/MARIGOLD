@@ -71,10 +71,20 @@ function groundProbe(e, level) {
   return false;
 }
 
+/* ---------- player profiles ----------
+   Finn carries a sword and a shield. SnoozyPaw grows flowers and carries a
+   light instead. The same class runs both roads: `profile` decides what the
+   buttons mean and which sprites get drawn. */
+
+const PROFILES = {
+  finn: { id: 'finn', art: 'hero', sword: true, guard: true, grow: false },
+  keep: { id: 'keep', art: 'keeper', sword: false, guard: false, grow: true }
+};
+
 /* ---------- player ---------- */
 
 class Player {
-  constructor(x, y) {
+  constructor(x, y, profile, io) {
     this.w = 10;
     this.h = 18;
     this.x = x;
@@ -96,8 +106,15 @@ class Player {
     this.animT = 0;
     this.prevBottom = y + 18;
     this.dead = false;
+    this.profile = PROFILES[profile] ? profile : 'finn';
+    this.io = io || Input;
+    this.lit = false;
+    this.wading = false;
+    this.plantT = -1;
+    this.plantSide = 1;
   }
 
+  get prof() { return PROFILES[this.profile]; }
   get cx() { return this.x + this.w / 2; }
   get cy() { return this.y + this.h / 2; }
 
@@ -125,24 +142,48 @@ class Player {
     if (this.hurtTimer > 0) this.hurtTimer -= dt;
     if (this.jumpBuffer > 0) this.jumpBuffer -= dt;
 
-    const dir = (Input.held.right ? 1 : 0) - (Input.held.left ? 1 : 0);
+    const io = this.io;
+    const prof = this.prof;
+    const dir = (io.held.right ? 1 : 0) - (io.held.left ? 1 : 0);
 
-    /* shield: a braced stance, only from the ground */
-    this.blocking = !!Input.held.shield && this.hurtTimer <= 0 && this.onGround;
+    /* wet ground drags at your feet */
+    this.wading = level.charAt(
+      Math.floor(this.cx / 16),
+      Math.floor((this.y + this.h + 1) / 16)
+    ) === 'w';
+
+    /* shield: a braced stance, only from the ground.
+       The keeper has no shield - holding the same key lifts her light. */
+    this.blocking = prof.guard && io.held.shield && this.hurtTimer <= 0 && this.onGround;
+    this.lit = prof.grow && io.held.shield && this.hurtTimer <= 0;
 
     /* attack */
     if (this.attackT >= 0) {
       this.attackT += dt;
       if (this.attackT > 0.3) this.attackT = -1;
     }
-    if (Input.pressed.attack && this.attackT < 0 && !this.blocking) {
-      this.attackT = 0;
-      this.hitSet = new Set();
-      AudioSys.sfx('attack');
+    if (this.plantT >= 0) {
+      this.plantT += dt;
+      if (this.plantT > 0.34) this.plantT = -1;
+    }
+
+    if (io.pressed.attack) {
+      if (prof.grow) {
+        if (this.plantT < 0) {
+          this.plantT = 0;
+          this.plantSide = this.facing;
+          if (io.held.down) game.reclaimBloom(this);
+          else game.plantBloom(this);
+        }
+      } else if (this.attackT < 0 && !this.blocking) {
+        this.attackT = 0;
+        this.hitSet = new Set();
+        AudioSys.sfx('attack');
+      }
     }
 
     /* jump */
-    if (Input.pressed.jump) this.jumpBuffer = PHYS.BUFFER;
+    if (io.pressed.jump) this.jumpBuffer = PHYS.BUFFER;
     if (this.jumpBuffer > 0 && this.coyote > 0 && this.hurtTimer <= 0) {
       this.vy = -PHYS.JUMP;
       this.onGround = false;
@@ -153,7 +194,7 @@ class Player {
       AudioSys.sfx('jump');
       game.burst(this.cx, this.y + this.h, PAL.cream2, 5, 60, 0.28, 'dust');
     }
-    if (this.jumpCut && !Input.held.jump && this.vy < 0) {
+    if (this.jumpCut && !io.held.jump && this.vy < 0) {
       this.vy *= 0.45;
       this.jumpCut = false;
     }
@@ -163,7 +204,8 @@ class Player {
       this.vx = U.approach(this.vx, 0, 260 * dt);
     } else if (dir !== 0) {
       const a = this.onGround ? PHYS.ACCEL_G : PHYS.ACCEL_A;
-      const max = this.blocking ? PHYS.RUN * 0.45 : PHYS.RUN;
+      let max = this.blocking ? PHYS.RUN * 0.45 : PHYS.RUN;
+      if (this.wading) max *= 0.6;
       this.vx = U.approach(this.vx, dir * max, a * dt);
       this.facing = dir;
     } else {
@@ -208,13 +250,29 @@ class Player {
     if (this.y > level.h * 16 + 8) game.drown();
 
     /* sword */
-    if (this.attackT >= PHYS.ATTACK_ACTIVE[0] && this.attackT <= PHYS.ATTACK_ACTIVE[1]) {
+    if (this.prof.sword && this.attackT >= PHYS.ATTACK_ACTIVE[0] && this.attackT <= PHYS.ATTACK_ACTIVE[1]) {
       this.resolveAttack(game);
     }
   }
 
   resolvePlatforms(game) {
     const prevBottom = this.prevBottom;
+
+    /* her own flowers: one-way, and only once they have opened */
+    if (game.blooms) {
+      for (const b of game.blooms) {
+        if (b.dead || !b.solid) continue;
+        if (this.x + this.w <= b.x + 2 || this.x >= b.x + b.w - 2) continue;
+        if (prevBottom <= b.y + 4 && this.y + this.h >= b.y && this.y + this.h <= b.y + b.h + 6) {
+          this.y = b.y - this.h;
+          this.vy = 0;
+          this.onGround = true;
+          this.riding = b;
+          break;
+        }
+      }
+    }
+
     for (const p of game.platforms) {
       if (p.gone) continue;
       if (this.x + this.w <= p.x + 1 || this.x >= p.x + p.w - 1) continue;
@@ -285,16 +343,16 @@ class Player {
         const ch = level.charAt(tx, ty);
         if (ch === '^') {
           const r = { x: tx * 16 + 2, y: ty * 16 + 8, w: 12, h: 8 };
-          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y);
+          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y, this);
         } else if (ch === 'v') {
           const r = { x: tx * 16 + 4, y: ty * 16, w: 8, h: 16 };
-          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y);
+          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y, this);
         } else if (ch === 'B') {
           const r = { x: tx * 16 + 1, y: ty * 16 + 5, w: 14, h: 11 };
-          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y);
+          if (U.overlap(box, r)) game.hurtPlayer(1, tx * 16 + 8, this.y, this);
         } else if (ch === '~') {
           const r = { x: tx * 16, y: ty * 16 + 2, w: 16, h: 14 };
-          if (U.overlap(box, r)) { game.drown(); return; }
+          if (U.overlap(box, r)) { game.drown(this); return; }
         }
       }
     }
@@ -304,6 +362,7 @@ class Player {
     const t = game.time;
     const drawX = Math.round(this.x - 4);
     const drawY = Math.round(this.y - 2);
+    const art = this.prof.grow ? Sprites.keeper : Sprites.hero;
 
     /* shadow */
     if (this.onGround) {
@@ -313,28 +372,60 @@ class Player {
       ctx.globalAlpha = 1;
     }
 
+    /* her light, drawn under everything else in the world */
+    if (this.lit) this.drawLight(ctx, game);
+
     /* blink while invulnerable */
     if (this.invuln > 0 && Math.floor(t * 20) % 2 === 0) return;
 
     let frame;
-    if (this.hurtTimer > 0) frame = Sprites.hero.hurt;
-    else if (this.attackT >= 0 && !this.onGround) frame = this.vy < 0 ? Sprites.hero.jump : Sprites.hero.fall;
-    else if (!this.onGround) frame = this.vy < 0 ? Sprites.hero.jump : Sprites.hero.fall;
-    else if (Math.abs(this.vx) > 12) frame = Sprites.hero.run[Math.floor(this.animT * 10) % 2];
-    else frame = Sprites.hero.idle;
+    if (this.hurtTimer > 0) frame = art.hurt;
+    else if (!this.onGround) frame = this.vy < 0 ? art.jump : art.fall;
+    else if (Math.abs(this.vx) > 12) frame = art.run[Math.floor(this.animT * 10) % 2];
+    else frame = art.idle;
 
     const img = Sprites.facing(frame, this.facing);
     const bob = (this.onGround && Math.abs(this.vx) > 12 && Math.floor(this.animT * 10) % 2 === 1) ? -1 : 0;
     ctx.drawImage(img, drawX, drawY + bob);
 
-    /* the blade, carried at the side when it is not swinging */
-    if (this.attackT < 0) this.drawRestingSword(ctx);
+    if (!this.prof.grow) {
+      /* the blade, carried at the side when it is not swinging */
+      if (this.attackT < 0) this.drawRestingSword(ctx);
 
-    /* shield raised */
-    if (this.blocking) this.drawShield(ctx);
+      /* shield raised */
+      if (this.blocking) this.drawShield(ctx);
 
-    /* sword + arc */
-    if (this.attackT >= 0) this.drawSword(ctx, t);
+      /* sword + arc */
+      if (this.attackT >= 0) this.drawSword(ctx, t);
+    } else {
+      /* a seed cupped in her hands while she plants */
+      if (this.plantT >= 0) this.drawSeed(ctx);
+    }
+  }
+
+  /* the keeper's light: a warm circle that finds what is hidden */
+  drawLight(ctx, game) {
+    const pulse = 0.62 + Math.sin(game.time * 3.4) * 0.05;
+    const r = 46;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(Sprites.light, Math.round(this.cx - r), Math.round(this.cy - r), r * 2, r * 2);
+    ctx.restore();
+  }
+
+  /* the little gold seed she presses into the ground */
+  drawSeed(ctx) {
+    const p = Math.min(1, this.plantT / 0.34);
+    const lift = Math.round(Math.sin(p * Math.PI) * 5);
+    const x = Math.round(this.cx + this.facing * 5);
+    const y = Math.round(this.y + 6 - lift);
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(x - 2, y - 2, 5, 5);
+    ctx.fillStyle = PAL.goldLight;
+    ctx.fillRect(x - 1, y - 1, 3, 3);
+    ctx.fillStyle = PAL.white;
+    ctx.fillRect(x - 1, y - 1, 1, 1);
   }
 
   /* the sword hangs point-down at the hero's leading side */
@@ -410,6 +501,165 @@ class Player {
   }
 }
 
+/* ---------- the keeper's flowers ---------- */
+
+/* A bloom is a marigold she grows out of the ground. It takes a moment to
+   open, and then it will hold her weight for a while before it goes over.
+   Three can be alive at once; the warmth she has decides how many. */
+class Bloom {
+  constructor(x, baseY, owner) {
+    this.x = x;            /* left edge, 16 wide */
+    this.baseY = baseY;    /* where it was pressed into the ground */
+    this.y = baseY - 8;    /* the surface she stands on */
+    this.w = 16;
+    this.h = 8;
+    this.owner = owner || null;
+    this.age = 0;
+    this.grow = 0.7;
+    this.life = 9;
+    this.dead = false;
+    this.anchored = false; /* given to a shrine: it stays put */
+    this.t = Math.random() * 6;
+    this.wither = 0;
+  }
+
+  get cx() { return this.x + this.w / 2; }
+  get solid() { return this.age >= this.grow; }
+  get fading() { return !this.anchored && this.age > this.grow + this.life - 2.4; }
+
+  update(dt, game) {
+    this.t += dt;
+    this.age += dt;
+    if (this.fading) this.wither = Math.min(1, this.wither + dt / 2.4);
+    if (!this.anchored && this.age > this.grow + this.life) {
+      this.dead = true;
+      if (game) game.onBloomFaded(this);
+    }
+  }
+
+  draw(ctx, game) {
+    let img;
+    if (this.wither > 0) img = Sprites.bloomDead;
+    else if (this.age < this.grow * 0.45) img = Sprites.bloom[0];
+    else if (this.age < this.grow) img = Sprites.bloom[1];
+    else img = Sprites.bloom[2];
+
+    const x = Math.round(this.x);
+    const y = Math.round(this.y);
+    ctx.drawImage(img, x, y);
+
+    /* a warm shimmer while it is still opening */
+    if (this.age < this.grow) {
+      ctx.globalAlpha = 0.34 * (1 - this.age / this.grow);
+      U.pixelCircle(ctx, x + 8, y + 6, 11, 'rgba(242,165,65,0.30)');
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+/* ---------- the shrine ---------- */
+
+/* Three sockets cut into the road. Only the keeper's own flowers can fill
+   them - nothing she picks up or finds will do. */
+class Shrine {
+  constructor(x, y) {
+    this.x = x;          /* left edge of the arch */
+    this.y = y;          /* the ground line */
+    this.w = 56;
+    this.sockets = [
+      { x: x + 4, y: y, filled: false },
+      { x: x + 20, y: y, filled: false },
+      { x: x + 36, y: y, filled: false }
+    ];
+    this.filled = 0;
+    this.done = false;
+    this.t = 0;
+    this.open = 0;
+  }
+
+  /* a bloom pressed into one of the rings stays there for good */
+  tryFill(bloom) {
+    if (this.done) return false;
+    for (const s of this.sockets) {
+      if (s.filled) continue;
+      if (bloom.cx >= s.x && bloom.cx <= s.x + 16 && Math.abs(bloom.baseY - s.y) <= 14) {
+        s.filled = true;
+        this.filled++;
+        bloom.anchored = true;
+        bloom.x = s.x;
+        bloom.baseY = s.y;
+        bloom.y = s.y - 8;
+        if (this.filled >= this.sockets.length) this.done = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  update(dt) {
+    this.t += dt;
+    if (this.done) this.open = Math.min(1, this.open + dt * 0.7);
+  }
+
+  draw(ctx, game) {
+    const x = Math.round(this.x);
+    const y = Math.round(this.y);
+
+    /* the arch behind the road */
+    ctx.fillStyle = PAL.inkDeep;
+    ctx.fillRect(x + 1, y - 58, 10, 58);
+    ctx.fillRect(x + 45, y - 58, 10, 58);
+    ctx.fillRect(x - 3, y - 68, 62, 12);
+    ctx.fillStyle = PAL.stoneDark;
+    ctx.fillRect(x + 3, y - 56, 7, 56);
+    ctx.fillRect(x + 46, y - 56, 7, 56);
+    ctx.fillRect(x - 1, y - 66, 58, 9);
+    ctx.fillStyle = PAL.stone;
+    ctx.fillRect(x + 4, y - 54, 5, 52);
+    ctx.fillRect(x + 47, y - 54, 5, 52);
+    ctx.fillRect(x, y - 64, 56, 6);
+    ctx.fillStyle = PAL.stoneLight;
+    ctx.fillRect(x + 4, y - 64, 52, 1);
+    ctx.fillRect(x + 4, y - 54, 1, 50);
+    ctx.fillRect(x + 47, y - 54, 1, 50);
+    ctx.fillStyle = PAL.leafDark;
+    ctx.fillRect(x + 9, y - 58, 38, 2);
+
+    /* the three rings on the ground */
+    for (const s of this.sockets) {
+      ctx.fillStyle = PAL.inkDeep;
+      ctx.fillRect(s.x, s.y - 3, 16, 5);
+      ctx.fillStyle = PAL.stoneDark;
+      ctx.fillRect(s.x - 1, s.y - 4, 18, 2);
+      ctx.fillRect(s.x - 1, s.y + 1, 18, 2);
+      ctx.fillStyle = PAL.stone;
+      ctx.fillRect(s.x, s.y - 3, 16, 1);
+      if (s.filled) {
+        const f = 0.5 + Math.sin(this.t * 3 + s.x) * 0.18;
+        ctx.globalAlpha = f * 0.5;
+        U.pixelCircle(ctx, s.x + 8, s.y - 6, 13, 'rgba(246,208,107,0.35)');
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = PAL.goldLight;
+        ctx.fillRect(s.x + 6, s.y - 5, 4, 3);
+      }
+    }
+
+    /* when the last socket fills, the whole road warms up */
+    if (this.done) {
+      ctx.globalAlpha = this.open * 0.45;
+      U.pixelCircle(ctx, x + 28, y - 24, 44, 'rgba(246,208,107,0.35)');
+      ctx.globalAlpha = 1;
+      for (let i = 0; i < 5; i++) {
+        const a = this.t * 0.9 + i * 1.25;
+        const px = x + 28 + Math.cos(a) * 20;
+        const py = y - 30 + Math.sin(a) * 14;
+        ctx.fillStyle = i % 2 ? PAL.gold : PAL.marigold;
+        ctx.fillRect(Math.round(px), Math.round(py), 2, 2);
+      }
+    }
+  }
+}
+
 /* ---------- enemies ---------- */
 
 class Enemy {
@@ -448,6 +698,61 @@ class Enemy {
       game.burst(this.cx, this.cy, PAL.gold, 5, 90, 0.4, 'spark');
       game.shake = Math.max(game.shake, 2);
     }
+  }
+}
+
+/* ---------- husk ---------- */
+
+/* What the briar leaves behind: a slow grey thing that walks toward warmth
+   and never quite stops. Your light makes it hurry. */
+class Husk extends Enemy {
+  constructor(x, y) {
+    super(x, y, 12, 18);
+    this.speed = 20;
+    this.dir = 1;
+    this.hp = 2;
+    this.damage = 1;
+    this.stompable = false;
+    this.awake = false;
+  }
+
+  update(dt, game) {
+    this.t += dt;
+    if (this.flash > 0) this.flash -= dt;
+
+    const p = game.player;
+    const d = Math.abs(p.cx - this.cx);
+    let dir = 0;
+    if (d < 100) {
+      this.awake = true;
+      dir = U.sign(p.cx - this.cx);
+      if (dir) this.dir = dir;
+    } else if (this.awake) {
+      dir = this.dir;
+    }
+
+    let sp = this.speed;
+    if (p.lit && d < 90) sp *= 1.25;
+
+    this.vy = Math.min(this.vy + PHYS.GRAV * dt, PHYS.MAX_FALL);
+    this.vx = dir * sp;
+    if (moveX(this, game.level, dt)) this.dir *= -1;
+    moveY(this, game.level, dt);
+  }
+
+  onSword(player, game) {
+    this.hurt(1, game);
+    return false;
+  }
+
+  stomp(player, game) { /* too heavy to land on */ }
+
+  draw(ctx, game) {
+    this.shadow(ctx, 2);
+    if (this.flash > 0 && Math.floor(game.time * 30) % 2 === 0) return;
+    const pair = Sprites.husk[Math.floor(this.t * 2) % 2];
+    const img = this.dir < 0 ? pair.l : pair.r;
+    ctx.drawImage(img, Math.round(this.x - 2), Math.round(this.y - 2));
   }
 }
 
@@ -1125,6 +1430,7 @@ class Pickup {
   constructor(x, y, kind, spec) {
     this.x = x;
     this.y = y;
+    this.baseX = x;
     this.baseY = y;
     this.w = 10;
     this.h = 10;
@@ -1144,6 +1450,12 @@ class Pickup {
     const dx = p.cx - this.cx;
     const dy = p.cy - this.cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
+
+    /* a glint is only there when the light is on it */
+    if (this.kind === 'glint') {
+      if (!p.lit || dist > 110) return;
+    }
+
     if (dist < 26 && dist > 1) {
       const pull = (1 - dist / 26) * 130 * dt;
       this.x += (dx / dist) * pull;
@@ -1158,6 +1470,18 @@ class Pickup {
   draw(ctx, game) {
     if (this.taken) return;
     const bob = Math.sin(this.t * 3) > 0 ? 0 : -1;
+
+    if (this.kind === 'glint') {
+      if (!game.player.lit) return;
+      const flick = 0.7 + Math.sin(this.t * 9) * 0.3;
+      ctx.globalAlpha = flick;
+      ctx.drawImage(Sprites.glint, Math.round(this.x - 1), Math.round(this.y - 3 + bob));
+      ctx.globalAlpha = 0.35 * flick;
+      U.pixelCircle(ctx, Math.round(this.cx), Math.round(this.cy - 3), 10, 'rgba(246,208,107,0.30)');
+      ctx.globalAlpha = 1;
+      return;
+    }
+
     const img = this.kind === 'violet' ? Sprites.violet : Sprites.marigold;
     if (this.kind === 'violet') {
       ctx.globalAlpha = 0.3;

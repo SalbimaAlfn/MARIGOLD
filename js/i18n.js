@@ -25,6 +25,8 @@ const STRINGS = {
     'html.aria.canvas': 'MARIGOLD, a 2D pixel platformer. Move with arrow keys or A and D, jump with Space, attack with J, pause with P.',
     'html.aria.fullscreen': 'Toggle fullscreen',
     'html.aria.language': 'Change language',
+    'html.aria.memento': 'Keepsakes',
+    'html.aria.settings': 'Settings',
     'html.aria.left': 'Move left',
     'html.aria.right': 'Move right',
     'html.aria.attack': 'Attack',
@@ -33,11 +35,13 @@ const STRINGS = {
 
     /* ---------- title ---------- */
     'title.tagline': 'A SMALL KNIGHT\'S ERRAND',
-    'title.counts': '{0} STAGES  -  1 PRINCESS  -  A GREAT MANY THORNS',
+    'title.counts': '5 STAGES  -  5 MORE ON THE WEST ROAD  -  1 PRINCESS',
     'title.begin': 'PRESS SPACE TO BEGIN',
     'title.continue': 'CONTINUE',
     'title.replay': 'PRESS R TO REPLAY THE PROLOGUE',
-    'title.footer': 'HAND-CODED PIXELS. NO ASSETS. NO ENGINE.',
+    'title.footer': 'HAND-CODED PIXELS. ONE SMALL TRIBUTE.',
+    'title.settings': 'SETTINGS',
+    'title.memento': 'KEEPSAKES',
 
     /* ---------- stage select ---------- */
     'select.title': 'STAGE SELECT',
@@ -49,8 +53,14 @@ const STRINGS = {
 
     /* ---------- hud ---------- */
     'hud.stage': 'STAGE {0}/{1}',
+    'hud.chapter': 'CHAPTER {0}/{1}',
+    'hud.warmth': 'WARMTH',
+    'hud.p2': 'P2',
+    'hud.thread': 'THE THREAD HOLDS',
     'hint.move': 'ARROWS/WASD MOVE   SPACE JUMP',
     'hint.actions': 'J SWORD   L SHIELD   P PAUSE   M SOUND',
+    'hint.keep': 'X BLOOM   L LIGHT   DOWN+X UPROOT   P PAUSE',
+    'hint.coop': 'P2: A D MOVE   V JUMP   B SWORD   C SHIELD',
 
     /* ---------- stage intro ---------- */
     'intro.ride': 'SPACE TO RIDE',
@@ -72,6 +82,9 @@ const STRINGS = {
     'menu.reveal': 'TEXT REVEAL: {0}',
     'menu.revealInstant': 'INSTANT',
     'menu.revealTyped': 'TYPED',
+    'menu.name': 'LETTER NAME: {0}',
+    'menu.keepsake': 'KEEPSAKES',
+    'menu.settings': 'SETTINGS',
 
     /* ---------- death ---------- */
     'dead.title': 'YOU FELL',
@@ -176,7 +189,183 @@ const STRINGS = {
     'sign.2': 'THE THORN WOODS',
     'sign.3': 'MIND THE WATER',
     'sign.4': 'SABLE MARSH',
-    'sign.5': 'SHE IS IN THE TOWER'
+    'sign.5': 'SHE IS IN THE TOWER',
+
+    /* ---------- the west road: choosing a side ---------- */
+    'road.title': 'CHOOSE A ROAD',
+    'road.hint': 'ARROWS CHOOSE   SPACE GO   ESC BACK',
+    'road.west': 'THE WEST ROAD',
+    'road.westSub': 'THE KEEPER OF THE MEADOW',
+    'road.westLine': 'FIVE CHAPTERS. HER ROAD FIRST.',
+    'road.knight': 'THE KNIGHT\'S ROAD',
+    'road.knightSub': 'FINN, A SMALL KNIGHT',
+    'road.knightLine': 'FIVE STAGES. HIS ROAD.',
+    'road.together': 'TOGETHER',
+    'road.togetherSub': 'TWO OF THEM, ONE NIGHT',
+    'road.togetherLine': 'TWO PLAYERS. ONE THREAD.',
+    'road.locked': 'LOCKED',
+    'road.done': 'FINISHED',
+
+    /* ---------- settings ---------- */
+    'settings.title': 'SETTINGS',
+    'settings.name': 'THE NAME ON THE LETTER',
+    'settings.nameValue': 'SIGNED AS: {0}',
+    'settings.nameMissing': 'NOT SET YET',
+    'settings.nameHint': 'PRESS SPACE TO TYPE A NAME',
+    'settings.nameHelp': 'ENTER TO SAVE   ESC TO CANCEL',
+    'settings.language': 'LANGUAGE',
+    'settings.pace': 'STORY PACE',
+    'settings.reveal': 'TEXT REVEAL',
+    'settings.sound': 'SOUND',
+    'settings.reset': 'ERASE ALL PROGRESS',
+    'settings.resetArmed': 'PRESS AGAIN TO ERASE',
+    'settings.back': 'BACK',
+    'settings.hint': 'ARROWS CHOOSE   SPACE CHANGE   ESC BACK',
+
+    /* ---------- keepsakes ---------- */
+    'memento.title': 'KEEPSAKES',
+    'memento.empty': 'NO KEEPSAKES YET',
+    'memento.emptyLine': 'PUT PHOTOS IN assets/photos AND THEY SHOW UP HERE.',
+    'memento.hint': 'ARROWS LOOK   SPACE OPEN   ESC BACK',
+    'memento.notFound': 'NOT FOUND YET',
+    'memento.found': 'FOUND',
+    'memento.letter': 'THE LETTER',
+    'memento.letterLocked': 'THE LETTER IS NOT READY YET',
+    'memento.flowers': '{0} MARIGOLDS SHARED',
+    'memento.open': 'OPEN',
+    'keepsake.hint': 'PRESS SPACE TO KEEP IT',
+
+    /* ---------- the letter ---------- */
+    'letter.title': 'A LETTER',
+    'letter.from': 'FROM SNOOZYPAW',
+    'letter.1': 'If you are reading this, I walked the whole road.',
+    'letter.2': 'You were right about the briar. About most things.',
+    'letter.3': 'Every flower is still standing. I counted them twice.',
+    'letter.4': 'I did not plant them for you, exactly.',
+    'letter.5': 'I planted them so the road would remember.',
+    'letter.6': 'And then you came along it anyway.',
+    'letter.7': 'Nobody asked you to. I keep turning that over.',
+    'letter.8': 'So I write it down, in case the road eats the rest.',
+    'letter.9': 'I love you. I love you in the morning, and in the dark.',
+    'letter.10': 'I love you when you follow me, and when you are late.',
+    'letter.11': 'Come find me in the yellow.',
+    'letter.12': 'I am not going anywhere.',
+    'letter.sign': 'ALWAYS, {0}',
+    'letter.hint': 'SPACE TO CONTINUE',
+
+    /* ---------- the west road: chapters ---------- */
+    'chapter.1.name': 'THE LANTERN PATH',
+    'chapter.2.name': 'THE NETTLE ROAD',
+    'chapter.3.name': 'THE DROWNED FIELD',
+    'chapter.4.name': 'THE HUSKS',
+    'chapter.5.name': 'THE OLD BLOOM',
+    'chapter.coop.name': 'TOGETHER',
+
+    'blurb.keep.1': 'THE MEADOW AT DUSK. THE FIRST FLOWER.',
+    'blurb.keep.2': 'THE WOODS GO GREY BEHIND HER.',
+    'blurb.keep.3': 'THE FIELD IS UNDER WATER TONIGHT.',
+    'blurb.keep.4': 'SOMETHING IS STANDING IN THE WAY.',
+    'blurb.keep.5': 'THE BRIAR HAS THE ROAD. SHE TAKES IT BACK.',
+    'blurb.coop': 'TWO OF THEM, AND THE NIGHT BETWEEN.',
+
+    'sign.keep.1': 'THE MARIGOLDS HOLD THE WARMTH',
+    'sign.keep.1end': 'THE SHRINE REMEMBERS WHAT YOU PLANT',
+    'sign.keep.2': 'THE NETTLES BITE. KEEP MOVING.',
+    'sign.keep.2end': 'THREE SOCKETS. THREE OF YOUR FLOWERS.',
+    'sign.keep.3': 'THE FIELD FLOODS WITH THE MOON',
+    'sign.keep.3end': 'THE WATER TAKES BACK WHAT IT WANTS',
+    'sign.keep.4': 'DO NOT LET YOUR LIGHT OUT',
+    'sign.keep.4end': 'THEY ARE ONLY THE BROKEN ONES',
+    'sign.keep.5': 'THE OLD BLOOM IS UNDER THE FEN',
+    'sign.keep.5end': 'THE HEART OF THE BRIAR',
+    'sign.coop.1': 'STAY CLOSE. THE THREAD HOLDS.',
+    'sign.coop.2': 'TOGETHER, THEN',
+
+    /* ---------- toasts for the west road ---------- */
+    'toast.warmth': 'NO WARMTH LEFT. WAIT, OR STAND ON A FLOWER.',
+    'toast.planted': 'A MARIGOLD OPENS',
+    'toast.uprooted': 'YOU TAKE THE WARMTH BACK',
+    'toast.shrine': 'THE SHRINE REMEMBERS',
+    'toast.glint': 'SOMETHING SHINES IN THE DARK',
+    'toast.drain': 'THE COLOUR IS LEAVING THE ROAD',
+    'toast.thread': 'THE THREAD HOLDS YOU BOTH',
+    'toast.threadCut': 'THE THREAD GOES DARK',
+
+    /* ---------- her prologue: the other side of the same night ---------- */
+    'prologue2.crawl': [
+      'EPISODE I',
+      'THE KEEPER GOES OUT',
+      '',
+      'THE MARIGOLDS HOLD THE MEADOW\'S',
+      'WARMTH, AND SNOOZYPAW IS THE ONE',
+      'WHO KEEPS THEM. ON THE NIGHT',
+      'OF THE HARVEST THE BRIAR CAME',
+      'FOR THE OLD BLOOM - THE ONE',
+      'THAT GROWS UNDER THE FEN, WHERE',
+      'THE ROAD ENDS AND THE DARK BEGINS.',
+      '',
+      'SO SHE WALKED WEST TO FIND IT.',
+      'AND HE FOLLOWED, AS HE ALWAYS DOES.'
+    ],
+
+    'scene.keep.1': 'THE BLOOMS ARE LATE THIS YEAR.',
+    'scene.keep.2': 'THE MEADOW IS COOLER THAN IT SHOULD BE.',
+    'scene.keep.3': 'SOMETHING IS TAKING THE WARMTH OUT OF THE GROUND.',
+    'scene.keep.4': 'THEN WE WILL FIND IT BEFORE IT TAKES THE REST.',
+
+    'scene.keep.ask.1': 'FINN. HOLD THE MEADOW FOR ME.',
+    'scene.keep.ask.2': 'ALONE? YOU KNOW THE BRIAR TAKES THE ROAD.',
+    'scene.keep.ask.3': 'I KNOW. THAT IS WHY THE MEADOW NEEDS YOU TONIGHT.',
+    'scene.keep.ask.4': 'THEN WE GO TOGETHER.',
+    'scene.keep.ask.5': 'NO. ONE OF US STAYS, AND IT IS NOT YOU.',
+    'scene.keep.ask.6': 'THEN I WILL HOLD IT MYSELF. AND FOLLOW YOU AFTER.',
+
+    'scene.keep.shadow.1': 'THE ROAD OUT WEST IS ALREADY GREY.',
+    'scene.keep.shadow.2': 'THE BRIAR IS AHEAD OF ME NOW.',
+
+    'scene.keep.west.1': 'IF IT TAKES THE ROAD, IT TAKES THE MORNING TOO.',
+    'scene.keep.west.2': 'SO I WILL WALK IT BACK. WITH FLOWERS.',
+    'scene.keep.west.3': 'HE IS FOLLOWING ME. HE ALWAYS FOLLOWS ME.',
+
+    'scene.keep.heart.1': 'THE OLD BLOOM IS UNDER THE FEN.',
+    'scene.keep.heart.2': 'SO THE KEEPER WILL GO AND ASK IT FOR THE MEADOW BACK.',
+    'scene.keep.heart.3': 'THIS IS MY ROAD. I AM NOT AFRAID OF IT.',
+
+    /* ---------- her epilogue ---------- */
+    'epilogue.keep.1': 'THE ROAD ENDS AT A HEART OF BRIAR.',
+    'epilogue.keep.2': 'AND A SMALL KNIGHT IS ALREADY STANDING IN IT.',
+    'epilogue.keep.3': 'HE DID NOT HOLD THE MEADOW.',
+    'epilogue.keep.4': 'HE NEVER DOES.',
+    'epilogue.keep.5': 'FINN.',
+    'epilogue.keep.6': 'YOU CAME.',
+    'epilogue.keep.7': 'I TOLD YOU TO HOLD THE MEADOW.',
+    'epilogue.keep.8': 'I ALSO TOLD YOU I LOVE YOU.',
+    'epilogue.keep.9': '...I DID NOT SAY IT BEFORE. I AM SAYING IT NOW.',
+    'epilogue.keep.10': 'SAY IT AGAIN.',
+    'epilogue.keep.11': 'I LOVE YOU.',
+    'epilogue.keep.card': 'AND THE MEADOW HELD BOTH OF THEM',
+
+    /* ---------- her victory ---------- */
+    'victory.keep.title': 'THE ROAD IS OPEN',
+    'victory.keep.line': 'THE BRIAR IS QUIET AND THE MEADOW IS WARM',
+    'victory.keep.romance': 'AND THE ROAD IS FULL OF FLOWERS',
+    'victory.keep.letter': 'PRESS SPACE TO READ THE LETTER',
+    'victory.coop.title': 'THE THREAD HELD',
+    'victory.coop.line': 'THE TWO OF THEM, ALL THE WAY THROUGH',
+
+    /* ---------- keepsake captions ---------- */
+    'photo.1.caption': 'the meadow, before any of it',
+    'photo.2.caption': 'you, mid-sentence',
+    'photo.3.caption': 'the night we did not sleep',
+    'photo.4.caption': 'your hand on the old gate',
+    'photo.5.caption': 'rain on the window',
+    'photo.6.caption': 'the first flower we planted',
+    'photo.7.caption': 'two chairs, one conversation',
+    'photo.8.caption': 'you, laughing at nothing',
+    'photo.9.caption': 'the long road home',
+    'photo.10.caption': 'the yellow one',
+    'photo.11.caption': 'late, and worth it',
+    'photo.12.caption': 'us'
   }
 };
 

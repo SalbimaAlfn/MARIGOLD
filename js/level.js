@@ -16,6 +16,8 @@ class Level {
     this.taken = new Set();
     this.totalFlowers = 0;
     this.spawnTile = { tx: 3, ty: 12 };
+    this.spawnTile2 = null;
+    this.drainAt = null;
 
     def.chunks.forEach((fn, i) => fn.call(new Chunk(this, i * 25)));
 
@@ -48,7 +50,7 @@ class Level {
     if (tx < 0 || tx >= this.w) return true;   // walls of the world
     if (ty < 0 || ty >= this.h) return false;  // open sky, open pit
     const ch = this.grid[ty][tx];
-    return ch === '#' || ch === '=' || ch === 'X' || ch === 'T' || ch === 'M';
+    return ch === '#' || ch === '=' || ch === 'X' || ch === 'T' || ch === 'M' || ch === 'w';
   }
 
   oneWayAt(tx, ty) {
@@ -184,6 +186,15 @@ class Chunk {
   crumble(x, y, w) { this.l.add('crumble', { tx: this.ox + x, ty: y, tiles: w }); }
   door(x, y, type) { this.l.add('door', { tx: this.ox + x, ty: y, type }); }
   torch(x, y) { this.l.add('torch', { tx: this.ox + x, ty: y }); }
+
+  /* the west road */
+  shrine(x, y) { this.l.add('shrine', { tx: this.ox + x, ty: y }); }
+  husk(x, y) { this.l.add('husk', { tx: this.ox + x, ty: y }); }
+  glint(x, y) { this.l.add('glint', { tx: this.ox + x, ty: y }); }
+  beacon(x, y) { this.l.add('beacon', { tx: this.ox + x, ty: y }); }
+  drain(x = 0) { this.l.add('drain', { tx: this.ox + x }); }
+  wade(x, y, w = 1) { this.rect(x, y, w, 1, 'w'); }
+  spawn2(x, y) { this.l.spawnTile2 = { tx: this.ox + x, ty: y }; }
 }
 
 /* ---------- the campaign ---------- */
@@ -702,3 +713,519 @@ const STAGES = [
     ]
   }
 ];
+
+/* ---------- the west road ----------
+   The same night, walked the other way. SnoozyPaw is the keeper of the
+   meadow: she cannot fight, but she can grow things, and the road remembers
+   what she plants. Five chapters, each ending at a shrine with three empty
+   sockets that only her own flowers can fill. */
+
+const CHAPTERS = [
+  {
+    id: 'lantern',
+    nameKey: 'chapter.1.name',
+    number: 'CHAPTER 1',
+    blurbKey: 'blurb.keep.1',
+    theme: 'day',
+    music: 'keeper',
+    seed: 211,
+    profile: 'keep',
+    chunks: [
+      /* 0 — the meadow, and the house she left */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(7, 12, 'sign.keep.1');
+        this.flower(11, 12);
+        this.flower(12, 12);
+        this.torch(15, 12);
+        this.platform(18, 11, 3);
+        this.flower(19, 10);
+        this.flower(20, 10);
+        this.checkpoint(23, 12);
+      },
+      /* 1 — the first gap */
+      function () {
+        this.ground();
+        this.flower(4, 12);
+        this.clear(9, 13, 5, 5);
+        this.platform(11, 12, 3);
+        this.flower(12, 11);
+        this.enemy('imp', 18, 12);
+        this.flower(20, 12);
+        this.flower(21, 12);
+        this.torch(23, 12);
+      },
+      /* 2 — the hill, and the brambles at its foot */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.platform(6, 11, 3);
+        this.flower(7, 10);
+        this.flower(8, 10);
+        this.clear(10, 13, 4, 5);
+        this.rect(14, 12, 11, 6, '#');
+        this.flower(16, 11);
+        this.flower(18, 11);
+        this.flower(20, 11);
+        this.enemy('imp', 17, 11);
+        this.torch(23, 11);
+      },
+      /* 3 — the long gap under the lantern line */
+      function () {
+        this.ground();
+        this.torch(2, 12);
+        this.clear(6, 13, 6, 5);
+        this.platform(8, 12, 2);
+        this.platform(10, 11, 2);
+        this.flower(11, 10);
+        this.enemy('bat', 15, 8);
+        this.flower(17, 12);
+        this.flower(18, 12);
+        this.spike(21, 12, 2);
+        this.checkpoint(23, 12);
+      },
+      /* 4 — the shrine */
+      function () {
+        this.ground();
+        this.flower(4, 12);
+        this.flower(5, 12);
+        this.torch(8, 12);
+        this.enemy('imp', 12, 12);
+        this.platform(15, 11, 3);
+        this.flower(16, 10);
+        this.shrine(19, 12);
+        this.sign(23, 12, 'sign.keep.1end');
+      }
+    ]
+  },
+
+  {
+    id: 'nettle',
+    nameKey: 'chapter.2.name',
+    number: 'CHAPTER 2',
+    blurbKey: 'blurb.keep.2',
+    theme: 'woods',
+    music: 'nettle',
+    seed: 233,
+    profile: 'keep',
+    drain: true,
+    drainSpeed: 24,
+    chunks: [
+      /* 0 — the wood thins out */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(7, 12, 'sign.keep.2');
+        this.flower(11, 12);
+        this.drain(0);
+        this.tree(14, 11, 2);
+        this.flower(16, 12);
+        this.platform(19, 11, 3);
+        this.flower(20, 10);
+        this.checkpoint(23, 12);
+      },
+      /* 1 — nettles and a hole in the path */
+      function () {
+        this.ground();
+        this.bramble(6, 12, 2);
+        this.flower(9, 12);
+        this.clear(11, 13, 4, 5);
+        this.platform(13, 12, 2);
+        this.enemy('imp', 18, 12);
+        this.tree(20, 11, 2);
+        this.flower(22, 12);
+      },
+      /* 2 — the bramble bed */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.platform(6, 11, 4);
+        this.flower(7, 10);
+        this.flower(8, 10);
+        this.bramble(11, 12, 3);
+        this.clear(15, 13, 3, 5);
+        this.platform(17, 11, 3);
+        this.flower(18, 10);
+        this.enemy('beetle', 21, 12);
+      },
+      /* 3 — over the top */
+      function () {
+        this.ground();
+        this.tree(4, 11, 2);
+        this.flower(7, 12);
+        this.clear(9, 13, 7, 5);
+        this.platform(12, 11, 2);
+        this.flower(13, 10);
+        this.platform(15, 10, 2);
+        this.bramble(18, 12, 2);
+        this.enemy('imp', 21, 12);
+        this.checkpoint(23, 12);
+      },
+      /* 4 — the colour starts to go */
+      function () {
+        this.ground();
+        this.flower(3, 12);
+        this.bramble(6, 12, 2);
+        this.platform(10, 11, 3);
+        this.flower(11, 10);
+        this.clear(14, 13, 4, 5);
+        this.platform(16, 12, 2);
+        this.enemy('beetle', 20, 12);
+        this.torch(22, 12);
+      },
+      /* 5 — the shrine */
+      function () {
+        this.ground();
+        this.flower(4, 12);
+        this.flower(5, 12);
+        this.bramble(8, 12, 2);
+        this.tree(12, 11, 2);
+        this.flower(15, 12);
+        this.shrine(18, 12);
+        this.sign(22, 12, 'sign.keep.2end');
+      }
+    ]
+  },
+
+  {
+    id: 'drowned',
+    nameKey: 'chapter.3.name',
+    number: 'CHAPTER 3',
+    blurbKey: 'blurb.keep.3',
+    theme: 'marsh',
+    music: 'drowned',
+    seed: 251,
+    profile: 'keep',
+    chunks: [
+      /* 0 — the water starts */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(7, 12, 'sign.keep.3');
+        this.wade(11, 13, 5);
+        this.flower(12, 12);
+        this.flower(14, 12);
+        this.checkpoint(18, 12);
+      },
+      /* 1 — wading, and a hole under the water */
+      function () {
+        this.ground();
+        this.wade(5, 13, 4);
+        this.clear(10, 13, 4, 5);
+        this.platform(12, 12, 2);
+        this.flower(13, 11);
+        this.wade(15, 13, 3);
+        this.enemy('beetle', 20, 12);
+        this.flower(22, 12);
+      },
+      /* 2 — the reed beds */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.wade(6, 13, 3);
+        this.platform(10, 11, 3);
+        this.flower(11, 10);
+        this.flower(12, 10);
+        this.clear(14, 13, 5, 5);
+        this.platform(16, 11, 2);
+        this.flower(17, 10);
+        this.enemy('bat', 20, 8);
+        this.wade(21, 13, 4);
+      },
+      /* 3 — the long wet stretch */
+      function () {
+        this.ground();
+        this.flower(4, 12);
+        this.clear(7, 13, 6, 5);
+        this.platform(9, 12, 2);
+        this.platform(12, 11, 2);
+        this.flower(13, 10);
+        this.enemy('bat', 16, 7);
+        this.wade(18, 13, 5);
+        this.flower(20, 12);
+        this.spike(22, 12, 2);
+      },
+      /* 4 — the mud shelf */
+      function () {
+        this.ground();
+        this.wade(4, 13, 3);
+        this.flower(6, 12);
+        this.platform(9, 11, 3);
+        this.flower(10, 10);
+        this.clear(13, 13, 4, 5);
+        this.platform(15, 12, 2);
+        this.enemy('beetle', 19, 12);
+        this.torch(22, 12);
+        this.checkpoint(23, 12);
+      },
+      /* 5 — the shrine */
+      function () {
+        this.ground();
+        this.wade(4, 13, 4);
+        this.flower(6, 12);
+        this.flower(7, 12);
+        this.platform(11, 11, 3);
+        this.flower(12, 10);
+        this.enemy('bat', 15, 8);
+        this.shrine(18, 12);
+        this.sign(22, 12, 'sign.keep.3end');
+      }
+    ]
+  },
+
+  {
+    id: 'husks',
+    nameKey: 'chapter.4.name',
+    number: 'CHAPTER 4',
+    blurbKey: 'blurb.keep.4',
+    theme: 'dusk',
+    music: 'husks',
+    seed: 271,
+    profile: 'keep',
+    chunks: [
+      /* 0 — something is standing in the field */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(7, 12, 'sign.keep.4');
+        this.husk(12, 12);
+        this.glint(15, 11);
+        this.checkpoint(19, 12);
+        this.torch(22, 12);
+      },
+      /* 1 — the first of them wakes */
+      function () {
+        this.ground();
+        this.clear(7, 13, 5, 5);
+        this.platform(9, 12, 2);
+        this.husk(14, 12);
+        this.glint(17, 10);
+        this.platform(16, 10, 3);
+        this.flower(19, 12);
+        this.spike(21, 12, 3);
+      },
+      /* 2 — the stone shelf */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.husk(8, 12);
+        this.glint(11, 9);
+        this.platform(10, 10, 3);
+        this.rect(15, 12, 10, 6, '#');
+        this.husk(18, 11);
+        this.flower(20, 11);
+        this.torch(23, 11);
+      },
+      /* 3 — three of them */
+      function () {
+        this.ground();
+        this.clear(5, 13, 6, 5);
+        this.platform(7, 12, 2);
+        this.platform(10, 11, 2);
+        this.glint(11, 10);
+        this.husk(15, 12);
+        this.husk(18, 12);
+        this.flower(20, 12);
+        this.checkpoint(23, 12);
+      },
+      /* 4 — keep the light up */
+      function () {
+        this.ground();
+        this.glint(4, 10);
+        this.platform(3, 11, 3);
+        this.husk(10, 12);
+        this.clear(12, 13, 5, 5);
+        this.platform(14, 11, 2);
+        this.glint(15, 10);
+        this.husk(19, 12);
+        this.flower(21, 12);
+      },
+      /* 5 — the shrine */
+      function () {
+        this.ground();
+        this.husk(6, 12);
+        this.glint(9, 11);
+        this.platform(8, 12, 3);
+        this.flower(12, 12);
+        this.husk(15, 12);
+        this.shrine(18, 12);
+        this.sign(22, 12, 'sign.keep.4end');
+      }
+    ]
+  },
+
+  {
+    id: 'bloom',
+    nameKey: 'chapter.5.name',
+    number: 'CHAPTER 5',
+    blurbKey: 'blurb.keep.5',
+    theme: 'night',
+    music: 'bloom',
+    seed: 293,
+    profile: 'keep',
+    drain: true,
+    drainMode: 'bloom',
+    drainSpeed: 6,
+    chunks: [
+      /* 0 — the briar has reached the road */
+      function () {
+        this.ground();
+        this.spawn(3, 12);
+        this.sign(7, 12, 'sign.keep.5');
+        this.torch(10, 12);
+        this.flower(13, 12);
+        this.bramble(16, 12, 2);
+        this.checkpoint(20, 12);
+        this.drain(0);
+      },
+      /* 1 — the first wall of it */
+      function () {
+        this.ground();
+        this.clear(6, 13, 5, 5);
+        this.platform(8, 12, 2);
+        this.bramble(12, 12, 3);
+        this.husk(16, 12);
+        this.flower(19, 12);
+        this.torch(22, 12);
+      },
+      /* 2 — over the briar bank */
+      function () {
+        this.ground();
+        this.checkpoint(3, 12);
+        this.bramble(7, 12, 2);
+        this.rect(11, 11, 14, 7, '#');
+        this.bramble(13, 10, 3);
+        this.flower(16, 10);
+        this.flower(18, 10);
+        this.husk(21, 10);
+        this.torch(23, 10);
+      },
+      /* 3 — the dark stretch */
+      function () {
+        this.ground();
+        this.clear(5, 13, 8, 5);
+        this.platform(7, 12, 2);
+        this.platform(10, 11, 2);
+        this.bramble(13, 12, 2);
+        this.glint(16, 9);
+        this.platform(15, 10, 3);
+        this.husk(19, 12);
+        this.checkpoint(23, 12);
+      },
+      /* 4 — the last open ground */
+      function () {
+        this.ground();
+        this.bramble(5, 12, 2);
+        this.husk(9, 12);
+        this.glint(12, 10);
+        this.platform(11, 11, 3);
+        this.clear(15, 13, 4, 5);
+        this.platform(17, 11, 2);
+        this.flower(20, 12);
+        this.spike(22, 12, 2);
+      },
+      /* 5 — the gate of the old bloom */
+      function () {
+        this.ground();
+        this.flower(4, 12);
+        this.husk(8, 12);
+        this.bramble(11, 12, 3);
+        this.platform(16, 11, 3);
+        this.glint(17, 10);
+        this.husk(20, 12);
+        this.checkpoint(23, 12);
+      },
+      /* 6 — the heart, and the shrine */
+      function () {
+        this.ground();
+        this.rect(5, 11, 5, 7, '=');
+        this.rect(15, 11, 5, 7, '=');
+        this.bramble(11, 12, 3);
+        this.flower(13, 12);
+        this.shrine(20, 12);
+        this.sign(24, 12, 'sign.keep.5end');
+      }
+    ]
+  }
+];
+
+/* ---------- the two of them, together ---------- */
+
+const COOP_CHAPTER = {
+  id: 'together',
+  nameKey: 'chapter.coop.name',
+  number: 'CO-OP',
+  blurbKey: 'blurb.coop',
+  theme: 'dusk',
+  music: 'keeper',
+  seed: 311,
+  profile: 'keep',
+  coop: true,
+  chunks: [
+    /* 0 — side by side */
+    function () {
+      this.ground();
+      this.spawn(3, 12);
+      this.spawn2(6, 12);
+      this.sign(9, 12, 'sign.coop.1');
+      this.flower(12, 12);
+      this.torch(15, 12);
+      this.checkpoint(19, 12);
+    },
+    /* 1 — a gap only one of you can cross */
+    function () {
+      this.ground();
+      this.clear(7, 13, 4, 5);
+      this.platform(9, 12, 2);
+      this.enemy('imp', 14, 12);
+      this.flower(17, 12);
+      this.torch(21, 12);
+    },
+    /* 2 — the high ledge */
+    function () {
+      this.ground();
+      this.checkpoint(3, 12);
+      this.platform(6, 11, 4);
+      this.flower(7, 10);
+      this.flower(8, 10);
+      this.clear(12, 13, 4, 5);
+      this.rect(17, 12, 8, 6, '#');
+      this.flower(19, 11);
+      this.enemy('beetle', 22, 11);
+    },
+    /* 3 — do not let go */
+    function () {
+      this.ground();
+      this.clear(5, 13, 7, 5);
+      this.platform(7, 12, 2);
+      this.platform(10, 11, 2);
+      this.flower(11, 10);
+      this.enemy('bat', 15, 8);
+      this.flower(18, 12);
+      this.spike(21, 12, 2);
+    },
+    /* 4 — the last stretch */
+    function () {
+      this.ground();
+      this.bramble(5, 12, 2);
+      this.platform(9, 11, 3);
+      this.flower(10, 10);
+      this.clear(13, 13, 4, 5);
+      this.platform(15, 12, 2);
+      this.enemy('imp', 19, 12);
+      this.torch(22, 12);
+      this.checkpoint(23, 12);
+    },
+    /* 5 — the shrine, together */
+    function () {
+      this.ground();
+      this.flower(4, 12);
+      this.flower(5, 12);
+      this.platform(10, 11, 3);
+      this.flower(11, 10);
+      this.shrine(17, 12);
+      this.sign(22, 12, 'sign.coop.2');
+    }
+  ]
+};

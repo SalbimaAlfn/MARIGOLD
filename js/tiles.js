@@ -19,6 +19,7 @@ const Tiles = {
     C.trunk = [0, 1].map((i) => bakeTile((ctx) => this.paintTrunk(ctx, i)));
     C.mud = [0, 1].map((i) => bakeTile((ctx) => this.paintMud(ctx, i)));
     C.bramble = bakeTile((ctx) => this.paintBramble(ctx));
+    C.wet = [0, 1].map((i) => bakeTile((ctx) => this.paintWet(ctx, i)));
   },
 
   /* ---------- tile painters ---------- */
@@ -237,6 +238,26 @@ const Tiles = {
     ctx.fillRect(2 + variant * 3, 0, 3, 1);
   },
 
+  /* wet ground: solid, but it drags at your feet */
+  paintWet(ctx, variant) {
+    ctx.fillStyle = '#3d4a48';
+    ctx.fillRect(0, 0, 16, 16);
+    ctx.fillStyle = '#48605c';
+    for (let i = 0; i < 7; i++) {
+      const x = Math.floor(U.hash(i * 9 + variant * 23) * 14);
+      const y = 2 + Math.floor(U.hash(i * 17 + variant * 3) * 13);
+      ctx.fillRect(x, y, 2, 1);
+    }
+    ctx.fillStyle = PAL.water;
+    ctx.fillRect(0, 0, 16, 3);
+    ctx.fillStyle = PAL.waterLight;
+    for (let x = 0; x < 16; x += 3) {
+      if (U.hash(x * 7 + variant * 19) > 0.45) ctx.fillRect(x, 1, 2, 1);
+    }
+    ctx.fillStyle = '#2a3735';
+    ctx.fillRect(0, 15, 16, 1);
+  },
+
   /* bramble: thorny scrub that hurts */
   paintBramble(ctx) {
     ctx.fillStyle = PAL.ink;
@@ -308,6 +329,15 @@ const Tiles = {
           case 'T': ctx.drawImage(C.trunk[v % 2], px, py); break;
           case 'M': ctx.drawImage(C.mud[v % 2], px, py); break;
           case 'B': ctx.drawImage(C.bramble, px, py); break;
+          case 'w': {
+            ctx.drawImage(C.wet[v % 2], px, py);
+            const above = level.solidAt(tx, ty - 1);
+            if (!above) {
+              ctx.fillStyle = PAL.waterLight;
+              ctx.fillRect(px, py, 16, 2);
+            }
+            break;
+          }
           default: break;
         }
       }

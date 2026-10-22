@@ -127,6 +127,10 @@ const AudioSys = {
       case 'win':     this.arp(['C5', 'E5', 'G5', 'C6', 'G5', 'C6'], 'square', 0.13, 0.12); break;
       case 'roar':    this.tone(88, t, 0.95, 'sawtooth', 0.22, 42); this.tone(132, t, 0.85, 'square', 0.09, 58); this.noise(t, 0.95, 0.13, 240); break;
       case 'thunder': this.noise(t, 0.7, 0.14, 190); this.tone(58, t, 0.8, 'sawtooth', 0.13, 38); break;
+      case 'bloom':   this.arp(['C5', 'E5', 'G5', 'C6'], 'triangle', 0.10, 0.045); break;
+      case 'light':   this.tone(880, t, 0.14, 'sine', 0.055, 1240); break;
+      case 'glint':   this.arp(['E6', 'A6'], 'sine', 0.09, 0.06); break;
+      case 'shrine':  this.arp(['C5', 'G5', 'C6', 'E6', 'G6'], 'triangle', 0.12, 0.07); break;
       default: break;
     }
   },
@@ -283,6 +287,108 @@ const TRACKS = {
       'F2', 0, 0, 0, 'G2', 0, 0, 0,
       'C3', 0, 0, 0, 'E3', 0, 0, 0,
       'G2', 0, 0, 0, 'C3', 0, 0, 0
+    ]
+  },
+
+  /* ---------- the west road ---------- */
+
+  /* keeper: hers. warm, plain, a little hopeful */
+  keeper: {
+    bpm: 104,
+    hat: false,
+    leadType: 'triangle',
+    leadVol: 0.07,
+    lead: [
+      'G4', 0, 'B4', 'D5', 0, 'C5', 'B4', 0,
+      'A4', 0, 'C5', 'E5', 0, 'D5', 'C5', 0,
+      'G4', 0, 'B4', 'D5', 0, 'E5', 'D5', 0,
+      'C5', 0, 'B4', 'A4', 0, 'G4', 0, 0
+    ],
+    bass: [
+      'G2', 0, 0, 0, 'C3', 0, 0, 0,
+      'E2', 0, 0, 0, 'D3', 0, 0, 0,
+      'G2', 0, 0, 0, 'A2', 0, 0, 0,
+      'D3', 0, 0, 0, 'G2', 0, 0, 0
+    ]
+  },
+
+  /* nettle: the wood closing in. prickly, and it hurries */
+  nettle: {
+    bpm: 120,
+    hat: true,
+    leadType: 'square',
+    leadVol: 0.048,
+    lead: [
+      'D5', 'F5', 'G5', 'F5', 'D5', 0, 'C5', 0,
+      'A#4', 0, 'D5', 'F5', 'E5', 'D5', 'C5', 0,
+      'D5', 'F5', 'A5', 'G5', 'F5', 0, 'D5', 'C5',
+      'A#4', 0, 'C5', 'D5', 0, 'A4', 0, 0
+    ],
+    bass: [
+      'D2', 0, 'D3', 0, 'A#2', 0, 'C3', 0,
+      'D2', 0, 'A2', 0, 'A#2', 0, 'A2', 0,
+      'D2', 0, 'D3', 0, 'F2', 0, 'C3', 0,
+      'A#2', 0, 'C3', 0, 'D2', 0, 0, 0
+    ]
+  },
+
+  /* drowned: the field under water. slow, low, and it drags */
+  drowned: {
+    bpm: 72,
+    hat: false,
+    leadType: 'sine',
+    leadVol: 0.085,
+    lead: [
+      'D5', 0, 0, 'F5', 0, 'E5', 0, 0,
+      'D5', 0, 0, 'A4', 0, 'C5', 0, 0,
+      'A#4', 0, 0, 'D5', 0, 'F5', 0, 0,
+      'E5', 0, 0, 'D5', 0, 'C5', 0, 0
+    ],
+    bass: [
+      'D2', 0, 0, 0, 0, 0, 'D2', 0,
+      'A#1', 0, 0, 0, 'F2', 0, 0, 0,
+      'D2', 0, 0, 0, 'A1', 0, 0, 0,
+      'A#1', 0, 0, 0, 'C2', 0, 0, 0
+    ]
+  },
+
+  /* husks: something standing in the field. sparse, and it watches */
+  husks: {
+    bpm: 88,
+    hat: false,
+    leadType: 'sawtooth',
+    leadVol: 0.042,
+    lead: [
+      'A4', 0, 0, 0, 'C5', 0, 0, 'B4',
+      'A4', 0, 0, 0, 'E4', 0, 'G4', 0,
+      'F4', 0, 0, 'A4', 0, 0, 'C5', 0,
+      'E4', 0, 0, 0, 'D4', 0, 'E4', 0
+    ],
+    bass: [
+      'A1', 0, 0, 0, 'A1', 0, 0, 0,
+      'F1', 0, 0, 0, 'E1', 0, 0, 0,
+      'D1', 0, 0, 0, 'A1', 0, 0, 0,
+      'E1', 0, 0, 0, 'A1', 0, 0, 0
+    ]
+  },
+
+  /* bloom: the heart of the briar. dark, with one warm line in it */
+  bloom: {
+    bpm: 98,
+    hat: false,
+    leadType: 'triangle',
+    leadVol: 0.07,
+    lead: [
+      'E5', 0, 'G5', 'B5', 0, 'A5', 'G5', 0,
+      'F#5', 0, 'A5', 'C#6', 0, 'B5', 'A5', 0,
+      'E5', 0, 'G5', 'B5', 0, 'C#6', 'B5', 'A5',
+      'G5', 0, 'F#5', 'E5', 0, 'D5', 'E5', 0
+    ],
+    bass: [
+      'E2', 0, 0, 0, 'B2', 0, 0, 0,
+      'F#2', 0, 0, 0, 'A2', 0, 0, 0,
+      'E2', 0, 0, 0, 'G2', 0, 0, 0,
+      'B2', 0, 0, 0, 'E2', 0, 0, 0
     ]
   }
 };

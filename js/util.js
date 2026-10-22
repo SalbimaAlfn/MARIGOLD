@@ -132,3 +132,74 @@ function wrapText(text, maxWidth, scale) {
   if (line) lines.push(line);
   return lines;
 }
+
+/* ---------- mixed-case text (the letter only) ----------
+   The game font is uppercase only, so the letter brings its own: uppercase
+   comes from FONT (7 rows) and lowercase from FONT_LOWER (9 rows), both
+   sharing the baseline on row 6 of a 9-row cell. */
+
+const MIXED_CELL_H = 9;
+
+function mixedGlyph(ch) {
+  if (ch >= 'a' && ch <= 'z') {
+    const g = FONT_LOWER[ch];
+    return g ? g.split(' ') : null;
+  }
+  const up = ch.toUpperCase();
+  if (up !== ch) return null;          /* anything else uppercase */
+  const g = FONT[up];
+  return g ? g.split(' ') : null;
+}
+
+function mixedWidth(str, scale) {
+  scale = scale || 1;
+  str = String(str);
+  if (!str.length) return 0;
+  return str.length * 6 * scale - scale;
+}
+
+function drawMixed(ctx, str, x, y, opts) {
+  opts = opts || {};
+  const scale = opts.scale || 1;
+  const color = opts.color || PAL.cream;
+  const align = opts.align || 'left';
+  str = String(str);
+
+  const w = mixedWidth(str, scale);
+  let sx = x;
+  if (align === 'center') sx = Math.round(x - w / 2);
+  else if (align === 'right') sx = Math.round(x - w);
+
+  ctx.fillStyle = color;
+  let gx = sx;
+  for (let i = 0; i < str.length; i++) {
+    const rows = mixedGlyph(str[i]);
+    if (rows) {
+      for (let ry = 0; ry < rows.length; ry++) {
+        const bits = rows[ry];
+        for (let rx = 0; rx < bits.length; rx++) {
+          if (bits[rx] === '1') ctx.fillRect(gx + rx * scale, y + ry * scale, scale, scale);
+        }
+      }
+    }
+    gx += 6 * scale;
+  }
+  return w;
+}
+
+function wrapMixed(text, maxWidth, scale) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const probe = line ? line + ' ' + word : word;
+    if (mixedWidth(probe, scale) > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = probe;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}

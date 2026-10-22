@@ -9,6 +9,8 @@
   const rotateOk = document.getElementById('rotateOk');
   const fsBtn = document.getElementById('fsBtn');
   const langBtn = document.getElementById('langBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const mementoBtn = document.getElementById('mementoBtn');
 
   const ctx = canvas.getContext('2d', { alpha: false });
   ctx.imageSmoothingEnabled = false;
@@ -32,6 +34,9 @@
   Tiles.init();
   Game.init();
 
+  /* the keepsake photos: optional, so a missing folder is not an error */
+  Photos.load();
+
   Input.init(canvas);
   Input.bindTouch(document.getElementById('touch'));
   Input.onGesture.push(function () { AudioSys.init(); });
@@ -39,6 +44,20 @@
   if (langBtn) {
     langBtn.addEventListener('click', function () {
       LANG.toggle();
+      canvas.focus();
+    });
+  }
+
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', function () {
+      Game.openSettings();
+      canvas.focus();
+    });
+  }
+
+  if (mementoBtn) {
+    mementoBtn.addEventListener('click', function () {
+      Game.openMemento();
       canvas.focus();
     });
   }
@@ -165,6 +184,13 @@
     STAGES: STAGES, UI: UI, LANG: LANG, PROLOGUE: PROLOGUE,
     STRINGS: STRINGS, CUTSCENE: CUTSCENE,
 
+    /* the west road, the co-op chapter, and the people in them */
+    CHAPTERS: CHAPTERS, COOP_CHAPTER: COOP_CHAPTER, PROLOGUE_KEEP: PROLOGUE_KEEP,
+    Photos: Photos, Player: Player, Bloom: Bloom, Shrine: Shrine, Husk: Husk,
+    PROFILES: PROFILES, LETTER_LINES: LETTER_LINES,
+    letterBlock: letterBlock, letterChars: letterChars, letterName: letterName,
+    LETTER_PAGE: LETTER_PAGE, LETTER_TEXT_W: LETTER_TEXT_W,
+
     /* QA: look for missing translations and text that would not fit */
     checkText: function () {
       const issues = [];
@@ -188,6 +214,17 @@
         dyn.push('sign.' + i);
         dyn.push('blurb.' + i);
       }
+      for (const def of CHAPTERS) dyn.push(def.nameKey);
+      for (let i = 1; i <= CHAPTERS.length; i++) {
+        dyn.push('sign.keep.' + i);
+        dyn.push('sign.keep.' + i + 'end');
+        dyn.push('blurb.keep.' + i);
+      }
+      dyn.push(COOP_CHAPTER.nameKey);
+      dyn.push('blurb.coop');
+      for (let i = 1; i <= Photos.MAX; i++) dyn.push('photo.' + i + '.caption');
+      for (let i = 1; i <= 12; i++) dyn.push('letter.' + i);
+      dyn.push('letter.sign');
       for (const scene of Object.keys(CUTSCENE)) {
         for (const b of CUTSCENE[scene]) dyn.push(b.key);
       }
@@ -232,6 +269,37 @@
             issues.push('overflow ' + code + ' -> ' + key);
           }
 
+          /* a chapter name sits on a 67px card, over two lines */
+          if (/^chapter\.\d+\.name$/.test(key) && wrapText(v, 67, 1).length > 2) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* a chapter name in the top right of the screen */
+          if (/^chapter\./.test(key) && textWidth(v, 1) > 200) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* the road cards: the sub-line and the line under it */
+          if (/^road\.(west|knight|together)(Sub|Line)$/.test(key)
+            && wrapText(v, 100, 1).length > 2) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* a photo caption is centred under the card */
+          if (/^photo\.\d+\.caption$/.test(key) && mixedWidth(v, 1) > 340) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* a letter line has to sit on the paper in one line */
+          if (/^letter\.\d+$/.test(key) && mixedWidth(v, 1) > LETTER_TEXT_W) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
+          /* the sign-off, with the longest name in it */
+          if (key === 'letter.sign' && mixedWidth(v.replace(/\{0\}/, 'XXXXXXXXXXXXXXXX'), 1) > LETTER_TEXT_W) {
+            issues.push('overflow ' + code + ' -> ' + key);
+          }
+
           /* pause menu rows sit in a 208px button */
           if (key.indexOf('menu.') === 0) {
             const probe = v.replace(/\{0\}/, 'XXXXXXXXXX');
@@ -242,6 +310,19 @@
           if (/^(toast|prologue\.skip|hint)\./.test(key) && textWidth(v, 1) > 336) {
             issues.push('overflow ' + code + ' -> ' + key);
           }
+        }
+      }
+
+      /* the whole letter has to fit on the page, in every language */
+      for (const code of codes) {
+        const saved = LANG.current;
+        LANG.current = code;
+        const lines = letterBlock();
+        LANG.current = saved;
+        const bodyY = LETTER_PAGE.y + 42;
+        const signY = LETTER_PAGE.y + LETTER_PAGE.h - 24;
+        if (lines.length * 9 > signY - bodyY) {
+          issues.push('letter overflow ' + code + ' (' + lines.length + ' lines)');
         }
       }
 

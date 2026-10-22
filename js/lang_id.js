@@ -22,6 +22,8 @@ STRINGS.id = {
   'html.aria.canvas': 'MARIGOLD, platformer piksel 2D. Bergerak dengan tombol panah atau A dan D, melompat dengan Spasi, menyerang dengan J, jeda dengan P.',
   'html.aria.fullscreen': 'Ubah layar penuh',
   'html.aria.language': 'Ganti bahasa',
+  'html.aria.memento': 'Kenangan',
+  'html.aria.settings': 'Pengaturan',
   'html.aria.left': 'Bergerak ke kiri',
   'html.aria.right': 'Bergerak ke kanan',
   'html.aria.attack': 'Menyerang',
@@ -30,11 +32,13 @@ STRINGS.id = {
 
   /* ---------- judul ---------- */
   'title.tagline': 'MISI KECIL SEORANG KSATRIA',
-  'title.counts': '{0} TAHAP  -  1 PUTRI  -  BANYAK DURI',
+  'title.counts': '5 TAHAP  -  5 BAB LAIN DI JALAN BARAT  -  1 PUTRI',
   'title.begin': 'TEKAN SPASI UNTUK MULAI',
   'title.continue': 'LANJUTKAN',
   'title.replay': 'TEKAN R UNTUK MENGULANG PROLOG',
-  'title.footer': 'PIKSEL BUATAN TANGAN. TANPA ASET. TANPA MESIN.',
+  'title.footer': 'PIKSEL BUATAN TANGAN. SATU PENGHORMATAN KECIL.',
+  'title.settings': 'PENGATURAN',
+  'title.memento': 'KENANGAN',
 
   /* ---------- pilih tahap ---------- */
   'select.title': 'PILIH TAHAP',
@@ -46,8 +50,14 @@ STRINGS.id = {
 
   /* ---------- hud ---------- */
   'hud.stage': 'TAHAP {0}/{1}',
+  'hud.chapter': 'BAB {0}/{1}',
+  'hud.warmth': 'HANGAT',
+  'hud.p2': 'P2',
+  'hud.thread': 'UTUSANNYA MEMEGANG',
   'hint.move': 'PANAH/WASD GERAK   SPASI MELOMPAT',
   'hint.actions': 'J PEDANG   L TAMENG   P JEDA   M SUARA',
+  'hint.keep': 'X BUNGA   L CAHAYA   BAWAH+X CABUT   P JEDA',
+  'hint.coop': 'P2: A D GERAK   V MELOMPAT   B PEDANG   C TAMENG',
 
   /* ---------- intro tahap ---------- */
   'intro.ride': 'SPASI UNTUK MELANJUT',
@@ -69,6 +79,9 @@ STRINGS.id = {
   'menu.reveal': 'TEKS: {0}',
   'menu.revealInstant': 'LANGSUNG',
   'menu.revealTyped': 'DIKETIK',
+  'menu.name': 'NAMA SURAT: {0}',
+  'menu.keepsake': 'KENANGAN',
+  'menu.settings': 'PENGATURAN',
 
   /* ---------- kalah ---------- */
   'dead.title': 'KAMU JATUH',
@@ -173,5 +186,181 @@ STRINGS.id = {
   'sign.2': 'HUTAN DURI',
   'sign.3': 'HATI-HATI AIRNYA',
   'sign.4': 'RANTAI PASIR',
-  'sign.5': 'DIA DI DALAM MENARA'
+  'sign.5': 'DIA DI DALAM MENARA',
+
+  /* ---------- memilih jalan ---------- */
+  'road.title': 'PILIH JALAN',
+  'road.hint': 'PANAH MEMILIH   SPASI MASUK   ESC KEMBALI',
+  'road.west': 'JALAN BARAT',
+  'road.westSub': 'PENJAGA PADANG EMAS',
+  'road.westLine': 'LIMA BAB. JALANNYA DIA.',
+  'road.knight': 'JALAN KSATRIA',
+  'road.knightSub': 'FINN, SEORANG KSATRIA KECIL',
+  'road.knightLine': 'LIMA TAHAP. JALANNYA DIA.',
+  'road.together': 'BERSAMA',
+  'road.togetherSub': 'KEDUANYA, SATU MALAM',
+  'road.togetherLine': 'DUA PEMAIN. SATU UTUSAN.',
+  'road.locked': 'TERKUNCI',
+  'road.done': 'SELESAI',
+
+  /* ---------- pengaturan ---------- */
+  'settings.title': 'PENGATURAN',
+  'settings.name': 'NAMA DI SURAT',
+  'settings.nameValue': 'DITANDATANGANI: {0}',
+  'settings.nameMissing': 'BELUM DIISI',
+  'settings.nameHint': 'TEKAN SPASI UNTUK MENGETIK NAMA',
+  'settings.nameHelp': 'ENTER UNTUK MENYIMPAN   ESC UNTUK BATAL',
+  'settings.language': 'BAHASA',
+  'settings.pace': 'IRAMA CERITA',
+  'settings.reveal': 'TAMPILAN TEKS',
+  'settings.sound': 'SUARA',
+  'settings.reset': 'HAPUS SEMUA PROGRES',
+  'settings.resetArmed': 'TEKAN LAGI UNTUK MENGHAPUS',
+  'settings.back': 'KEMBALI',
+  'settings.hint': 'PANAH MEMILIH   SPASI UBAH   ESC KEMBALI',
+
+  /* ---------- kenang-kenangan ---------- */
+  'memento.title': 'KENANGAN',
+  'memento.empty': 'BELUM ADA KENANGAN',
+  'memento.emptyLine': 'TARUH FOTO DI assets/photos DAN MUNCUL DI SINI.',
+  'memento.hint': 'PANAH LIHAT   SPASI BUKA   ESC KEMBALI',
+  'memento.notFound': 'BELUM DITEMUKAN',
+  'memento.found': 'DITEMUKAN',
+  'memento.letter': 'SURATNYA',
+  'memento.letterLocked': 'SURATNYA BELUM SIAP',
+  'memento.flowers': '{0} MARIGOLD BERSAMA',
+  'memento.open': 'BUKA',
+  'keepsake.hint': 'TEKAN SPASI UNTUK MENYIMPAN',
+
+  /* ---------- surat ---------- */
+  'letter.title': 'SEBUAH SURAT',
+  'letter.from': 'DARI SNOOZYPAW',
+  'letter.1': 'Kalau kamu baca ini, aku sudah jalan seluruh barat.',
+  'letter.2': 'Kamu benar soal duri itu. Soal hampir semuanya juga.',
+  'letter.3': 'Setiap bunga masih tegak. Aku hitung dua kali.',
+  'letter.4': 'Aku tidak menancamkannya untukmu, sebenar-nya.',
+  'letter.5': 'Aku menancamkannya supaya jalan ingat ada yang lewat.',
+  'letter.6': 'Dan setelah itu, kamu tetap datang menyusul.',
+  'letter.7': 'Tidak ada yang menyuruhmu. Itu terus aku pikirkan.',
+  'letter.8': 'Jadi aku tuliskannya, kalau jalan memakan sisanya.',
+  'letter.9': 'Aku mencintaimu. Di pagi hari, dan di dalam gelap.',
+  'letter.10': 'Aku mencintaimu saat kamu menyusul, dan saat telat.',
+  'letter.11': 'Temukan aku di antara yang kuning.',
+  'letter.12': 'Aku tidak akan pergi ke mana-mana.',
+  'letter.sign': 'SELALU, {0}',
+  'letter.hint': 'SPASI UNTUK LANJUT',
+
+  /* ---------- bab jalan barat ---------- */
+  'chapter.1.name': 'JALAN LENTERA',
+  'chapter.2.name': 'JALAN NETEL',
+  'chapter.3.name': 'LADANG YANG BANJIR',
+  'chapter.4.name': 'KULIT-KULIT KOSONG',
+  'chapter.5.name': 'BUNGA LAMA',
+  'chapter.coop.name': 'BERSAMA',
+
+  'blurb.keep.1': 'PADANG EMAS SAAT SENJA. BUNGA YANG PERTAMA.',
+  'blurb.keep.2': 'HUTAN MULAI BERUBAH WARNA DI BELAKANGNYA.',
+  'blurb.keep.3': 'LADANG INI TERBANYANG MALAM INI.',
+  'blurb.keep.4': 'ADA SESUATU YANG BERDIRI DI JALAN.',
+  'blurb.keep.5': 'DURI-DURI TELAH MEMAKAI JALAN INI. DIA AMBIL KEMBALI.',
+  'blurb.coop': 'KEDUANYA, DAN MALAM DI ANTARANYA.',
+
+  'sign.keep.1': 'MARIGOLD MENAHAN HANGAT',
+  'sign.keep.1end': 'KUILANGAT INGAT APA YANG KAU TANAM',
+  'sign.keep.2': 'NETEL MENYERGAT. TERUS BERGERAK.',
+  'sign.keep.2end': 'TIGA CINCIN. TIGA BUNGA MILIKMU.',
+  'sign.keep.3': 'LADANG BANJIR DENGAN CAHAYA BULAN',
+  'sign.keep.3end': 'AIR MENGAMBIL BALIK YANG DIA INGIN',
+  'sign.keep.4': 'JANGAN BIARKAN CAHAYAMU MATI',
+  'sign.keep.4end': 'MEREKA HANYA YANG HINGGAL TERPECAH',
+  'sign.keep.5': 'BUNGA LAMA ADA DI BAWAH RAWAK',
+  'sign.keep.5end': 'JANTUNG DARI DURI-DURI',
+  'sign.coop.1': 'TETAP DEKAT. UTUSANNYA MEMEGANG.',
+  'sign.coop.2': 'BERSAMA, JADI',
+
+  /* ---------- pesan jalan barat ---------- */
+  'toast.warmth': 'HANGATMU HABIS. TUNGGU, ATAU BERDIRI DI ATAS BUNGA.',
+  'toast.planted': 'SEBUAH MARIGOLD TERBUKA',
+  'toast.uprooted': 'KAMU MENGAMBIL KEMBALI HANGATMU',
+  'toast.shrine': 'KUILANGAT MENGINGAT',
+  'toast.glint': 'ADA SESUATU BERKILAU DI DALAM GELAP',
+  'toast.drain': 'WARNA SEDANG KELUAR DARI JALAN INI',
+  'toast.thread': 'UTUSANNYA MEMEGANG KAMU BERDUA',
+  'toast.threadCut': 'UTUSANNYA MENJADI GELAP',
+
+  /* ---------- prolognya: sisi lain dari malam yang sama ---------- */
+  'prologue2.crawl': [
+    'EPISODE I',
+    'PENJAGA PADANG PERGI',
+    '',
+    'MARIGOLD MENAHAN HANGAT PADANG EMAS,',
+    'DAN SNOOZYPAW-LAH YANG MENJAGANYA.',
+    'PADA MALAM PANEN, DURI-DURI DATANG',
+    'MEMBUKA BUNGA LAMA - YANG',
+    'TUMBUH DI BAWAH RAWAK, DI UJUNG',
+    'YANG JALAN BERAKHIR DAN GELAP MULAI.',
+    '',
+    'JADI DIA BERJALAN BARAT',
+    'UNTUK MENCARINYA. DAN FINN',
+    'MENGIKUTI, SEPERTI SELALUNYA.'
+  ],
+
+  'scene.keep.1': 'BUNGANYA TERLAMBAT TAHUN INI.',
+  'scene.keep.2': 'PADANG EMAS LEBIH DINGIN DARI YANG SEHARUSNYA.',
+  'scene.keep.3': 'ADA YANG MENGAMBIL HANGAT DARI TANAH.',
+  'scene.keep.4': 'JADI KITA CARI DULUAN SEBELUM DIA MENGAMBIL SISANYA.',
+
+  'scene.keep.ask.1': 'FINN. JAGA PADANG EMAS UNTUKKU.',
+  'scene.keep.ask.2': 'SENDIRIAN? KAMU TAHU DURI-DURI ITU MENGAMBIL JALAN.',
+  'scene.keep.ask.3': 'AKU TAHU. ITU SEBABNYA PADANG EMAS BUTUH KAMU MALAM INI.',
+  'scene.keep.ask.4': 'JADI KITA BERJALAN BERSAMA.',
+  'scene.keep.ask.5': 'TIDAK. SATU DARI KITA HARUS TINGGAL, DAN BUKAN KAMU.',
+  'scene.keep.ask.6': 'JADI AKU YANG MENJAGANYA. DAN MENGIKUTIMU SETELAHNYA.',
+
+  'scene.keep.shadow.1': 'JALAN KE BARAT SUDAH ABU-ABU.',
+  'scene.keep.shadow.2': 'DURI-DURI ITU SUDAH DI DEPANKU.',
+
+  'scene.keep.west.1': 'KALAU DIA MENGAMBIL JALAN INI, DIA AKAN MENGAMBIL PAGI INI JUGA.',
+  'scene.keep.west.2': 'JADI AKU AKAN MENYUSURNYA BALIK. DENGAN BUNGA.',
+  'scene.keep.west.3': 'DIA MENGIKUTI AKU. DIA SELALU MENGIKUTI AKU.',
+
+  'scene.keep.heart.1': 'BUNGA LAMA ADA DI BAWAH RAWAK.',
+  'scene.keep.heart.2': 'JADI PENJAGA AKAN PERGI MEMINTA PADANG EMAS KEMBALI.',
+  'scene.keep.heart.3': 'INI JALANKU. AKU TIDAK TAKUT.',
+
+  /* ---------- epilognya ---------- */
+  'epilogue.keep.1': 'JALAN INI BERAKHIR DI JANTUNG DURI-DURI.',
+  'epilogue.keep.2': 'DAN SEORANG KSATRIA KECIL SUDAH BERDIRI DI SANA.',
+  'epilogue.keep.3': 'DIA TIDAK MENJAGA PADANG EMAS.',
+  'epilogue.keep.4': 'DIA TIDAK PERNAH MENJAGANYA.',
+  'epilogue.keep.5': 'FINN.',
+  'epilogue.keep.6': 'KAMU DATANG.',
+  'epilogue.keep.7': 'AKU BILANG KAMU JAGA PADANG EMAS.',
+  'epilogue.keep.8': 'AKU JUGA BILANG AKU MENCINTAIMU.',
+  'epilogue.keep.9': '...AKU TIDAK BILANG ITU SEBELUMNYA. SEKARANG AKU BILANG.',
+  'epilogue.keep.10': 'ULANGI LAGI.',
+  'epilogue.keep.11': 'AKU MENCINTAIMU.',
+  'epilogue.keep.card': 'DAN PADANG EMAS MEMEGANG KEDUANYA',
+
+  /* ---------- kemenangan ---------- */
+  'victory.keep.title': 'JALANNYA TERBUKA',
+  'victory.keep.line': 'DURI-DURI SUNYI DAN PADANG EMAS HANGAT',
+  'victory.keep.romance': 'DAN JALAN ITU PENUH BUNGA',
+  'victory.keep.letter': 'TEKAN SPASI UNTUK MEMBACA SURATNYA',
+  'victory.coop.title': 'UTUSANNYA MEMEGANG',
+  'victory.coop.line': 'KEDUANYA, SAMPAI KE AKHIR',
+
+  /* ---------- keterangan kenang-kenangan ---------- */
+  'photo.1.caption': 'padang emas, sebelum semuanya',
+  'photo.2.caption': 'kamu, di tengah kalimat',
+  'photo.3.caption': 'malam ketika kita tidak tidur',
+  'photo.4.caption': 'tanganmu di gerbang tua',
+  'photo.5.caption': 'hujan di jendela',
+  'photo.6.caption': 'bunga pertama yang kita tanam',
+  'photo.7.caption': 'dua kursi, satu percakapan',
+  'photo.8.caption': 'kamu, tertawa tanpa alasan',
+  'photo.9.caption': 'jalan panjang pulang',
+  'photo.10.caption': 'yang kuning itu',
+  'photo.11.caption': 'terlambat, dan sepadan',
+  'photo.12.caption': 'kita'
 };

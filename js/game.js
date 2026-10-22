@@ -17,6 +17,22 @@ const Game = {
   goals: [],
   particles: [],
 
+  /* the west road */
+  blooms: [],
+  shrines: [],
+  warmth: 3,
+  maxWarmth: 3,
+  warmthT: 0,
+
+  /* the second player */
+  player2: null,
+  threadCut: false,
+  threadT: 0,
+
+  /* the colour draining out of the nettle road */
+  drainFront: 0,
+  drainOn: false,
+
   camera: { x: 0, y: 0 },
   hearts: 3,
   maxHearts: 3,
@@ -37,6 +53,8 @@ const Game = {
   prologueT: 0,
   prologueDone: false,
   prologueWait: 0,
+  prologueDef: PROLOGUE,
+  prologueRoad: 'finn',
   roared: false,
   deadT: 0,
   rescueT: 0,
@@ -44,6 +62,20 @@ const Game = {
   selectSel: 0,
   pausedSel: 0,
   pointerInPause: false,
+  pointerOver: null,
+
+  /* which road, and the screens around it */
+  road: 'keep',
+  roadSel: 0,
+  settingsSel: 0,
+  mementoSel: 0,
+  letterT: 0,
+  letterFrom: 'title',
+  keepsakeIdx: 0,
+  keepsakeNext: null,
+  settingsFrom: 'title',
+  mementoFrom: 'title',
+  resetArmed: false,
 
   /* ---------- setup ---------- */
 
@@ -51,26 +83,195 @@ const Game = {
     this.titleLevel = new Level(STAGES[0]);
     let total = 0;
     for (const def of STAGES) total += new Level(def).totalFlowers;
+    for (const def of CHAPTERS) total += new Level(def).totalFlowers;
     this.totalPossible = total;
     this.hearts = this.maxHearts;
     this.state = 'title';
+    this.road = Save.data.road === 'finn' ? 'finn' : 'keep';
     AudioSys.playMusic('meadow');
+  },
+
+  /* ---------- the two roads ---------- */
+
+  /* the list of chapters the player is currently walking */
+  campaign() {
+    if (this.road === 'coop') return [COOP_CHAPTER];
+    if (this.road === 'keep') return CHAPTERS;
+    return STAGES;
+  },
+
+  campaignDef() {
+    const c = this.campaign();
+    return c[U.clamp(this.stageIndex, 0, c.length - 1)];
+  },
+
+  /* how many chapters are open on this road */
+  unlockedCount() {
+    if (this.road === 'keep') return Save.data.keepUnlocked;
+    if (this.road === 'coop') return 1;
+    return Save.data.unlocked;
+  },
+
+  /* the three roads on the title screen */
+  roadList() {
+    return [
+      {
+        id: 'keep',
+        titleKey: 'road.west',
+        subKey: 'road.westSub',
+        lineKey: 'road.westLine',
+        theme: 'day',
+        profile: 'keep',
+        locked: false,
+        done: Save.data.keepDone
+      },
+      {
+        id: 'finn',
+        titleKey: 'road.knight',
+        subKey: 'road.knightSub',
+        lineKey: 'road.knightLine',
+        theme: 'night',
+        profile: 'finn',
+        locked: false,
+        done: Save.data.unlocked >= Save.SLOTS
+      },
+      {
+        id: 'coop',
+        titleKey: 'road.together',
+        subKey: 'road.togetherSub',
+        lineKey: 'road.togetherLine',
+        theme: 'dusk',
+        profile: 'keep',
+        locked: !Save.data.keepPrologueSeen,
+        done: Save.data.coopDone
+      }
+    ];
+  },
+
+  startRoadSelect() {
+    this.state = 'roadSelect';
+    const roads = this.roadList();
+    let idx = 0;
+    for (let i = 0; i < roads.length; i++) {
+      if (roads[i].id === Save.data.road) idx = i;
+    }
+    this.roadSel = idx;
+    AudioSys.playMusic('meadow');
+  },
+
+  chooseRoad(i) {
+    const roads = this.roadList();
+    const r = roads[i];
+    if (!r) return;
+    if (r.locked) {
+      AudioSys.sfx('locked');
+      this.msg = { text: L('toast.barred'), t: 2 };
+      return;
+    }
+    AudioSys.sfx('select');
+    this.road = r.id;
+    Save.data.road = (r.id === 'coop') ? 'keep' : r.id;
+    Save.write();
+    this.stageIndex = 0;
+    this.selectSel = 0;
+    this.startTransition(() => {
+      if (r.id === 'coop') { this.enterStage(0); return; }
+      const seen = (r.id === 'keep') ? Save.data.keepPrologueSeen : Save.data.prologueSeen;
+      if (!seen) this.startPrologue(r.id);
+      else this.startSelect();
+    });
+  },
+
+  startSettings(from) {
+    this.state = 'settings';
+    this.settingsSel = 0;
+    this.resetArmed = false;
+    this.settingsFrom = from || this.settingsFrom || 'title';
+    AudioSys.sfx('select');
+  },
+
+  startMemento(from) {
+    this.state = 'memento';
+    this.mementoSel = 0;
+    this.mementoFrom = from || 'title';
+    AudioSys.sfx('select');
+  },
+
+  startLetter(from) {
+    this.state = 'letter';
+    this.letterT = 0;
+    this.letterFrom = from || 'title';
+    Save.data.letterSeen = true;
+    Save.write();
+    AudioSys.sfx('select');
+  },
+
+  /* go back to whichever screen sent us here */
+  backTo(where) {
+    const w = where || 'title';
+    if (w === 'roadSelect') this.state = 'roadSelect';
+    else if (w === 'select') this.state = 'select';
+    else if (w === 'memento') this.state = 'memento';
+    else if (w === 'settings') this.state = 'settings';
+    else if (w === 'pause') this.state = 'paused';
+    else this.state = 'title';
+  },
+
+  /* the header buttons: settings and keepsakes, from anywhere sensible */
+  openSettings() {
+    if (this.state === 'letter' || this.state === 'photoView') return;
+    let from = 'title';
+    if (this.state === 'paused') from = 'pause';
+    else if (this.state === 'roadSelect') from = 'roadSelect';
+    else if (this.state === 'select') from = 'select';
+    else if (this.state === 'memento') from = 'memento';
+    this.startTransition(() => this.startSettings(from));
+  },
+
+  openMemento() {
+    if (this.state === 'letter' || this.state === 'photoView') return;
+    let from = 'title';
+    if (this.state === 'paused') from = 'pause';
+    else if (this.state === 'roadSelect') from = 'roadSelect';
+    else if (this.state === 'settings') from = 'settings';
+    this.startTransition(() => this.startMemento(from));
+  },
+
+  /* the rows on the settings screen */
+  settingsItems() {
+    const paceKey = { slow: 'menu.paceSlow', normal: 'menu.paceNormal', fast: 'menu.paceFast' };
+    const revKey = { instant: 'menu.revealInstant', typed: 'menu.revealTyped' };
+    const name = Save.keeperName();
+    const items = [
+      { label: L('settings.name'), value: name || L('settings.nameMissing'), act: 'name' },
+      { label: L('settings.language'), value: LANG.LABEL[LANG.current] || 'ENGLISH', act: 'language' },
+      { label: L('settings.pace'), value: L(paceKey[Save.data.pace] || 'menu.paceNormal'), act: 'pace' },
+      { label: L('settings.reveal'), value: L(revKey[Save.data.reveal] || 'menu.revealInstant'), act: 'reveal' },
+      { label: L('settings.sound'), value: Save.data.muted ? L('menu.soundOff') : L('menu.soundOn'), act: 'sound' },
+      { label: L('settings.reset'), value: this.resetArmed ? L('settings.resetArmed') : '', warn: this.resetArmed, act: 'reset' },
+      { label: L('settings.back'), value: '', act: 'back' }
+    ];
+    return items;
   },
 
   startSelect() {
     this.state = 'select';
-    this.selectSel = U.clamp(Save.data.unlocked - 1, 0, STAGES.length - 1);
+    const c = this.campaign();
+    this.selectSel = U.clamp(this.unlockedCount() - 1, 0, c.length - 1);
     AudioSys.sfx('select');
     AudioSys.playMusic('meadow');
   },
 
-  startPrologue() {
+  startPrologue(road) {
+    const r = road || this.road;
     this.state = 'prologue';
+    this.prologueRoad = (r === 'keep') ? 'keep' : 'finn';
+    this.prologueDef = (this.prologueRoad === 'keep') ? PROLOGUE_KEEP : PROLOGUE;
     this.prologueT = 0;
     this.prologueDone = false;
     this.prologueWait = 0;
     this.roared = false;
-    AudioSys.playMusic('keep');
+    AudioSys.playMusic(this.prologueRoad === 'keep' ? 'keeper' : 'keep');
   },
 
   /* how fast the story clock runs: slow stretches it, fast tightens it */
@@ -91,6 +292,8 @@ const Game = {
       { label: L('menu.pace', L(paceKey[Save.data.pace] || 'menu.paceNormal')), act: 'pace' },
       { label: L('menu.reveal', L(revKey[Save.data.reveal] || 'menu.revealInstant')), act: 'reveal' },
       { label: L('menu.language', LANG.LABEL[LANG.current] || 'ENGLISH'), act: 'language' },
+      { label: L('menu.keepsake'), act: 'memento' },
+      { label: L('menu.name', Save.keeperName() || L('settings.nameMissing')), act: 'name' },
       { label: L('menu.quit'), act: 'quit' }
     ];
   },
@@ -102,7 +305,9 @@ const Game = {
   enterStage(i, opts) {
     opts = opts || {};
     this.stageIndex = i;
-    const def = STAGES[i];
+    const def = this.campaign()[i];
+    const coop = !!def.coop;
+    Input.setCoop(coop);
 
     if (opts.keepLevel && this.level && this.level.def === def) {
       this.hearts = this.maxHearts;
@@ -114,13 +319,27 @@ const Game = {
       this.checkpointPos = null;
       this.checkpointSpec = null;
       this.hearts = this.maxHearts;
+      this.blooms = [];
+      this.shrines = [];
+      this.warmth = this.maxWarmth;
+      this.warmthT = 0;
+      this.threadCut = false;
       this.spawnEntities();
       this.particles = [];
     }
 
     const start = (opts.keepLevel && this.checkpointPos) ? this.checkpointPos : this.spawnPos;
-    this.player = new Player(start.x, start.y);
+    const profile = def.profile || 'finn';
+    this.player = new Player(start.x, start.y, profile, Input);
     this.player.invuln = 0.8;
+
+    /* the second player: the little knight, on the letter keys */
+    this.player2 = null;
+    if (coop && this.level.spawnTile2) {
+      const s2 = this.level.spawnTile2;
+      this.player2 = new Player(s2.tx * 16 + 3, (s2.ty + 1) * 16 - 18, 'finn', Input.p2);
+      this.player2.invuln = 0.8;
+    }
 
     this.camera.x = U.clamp(start.x - 200, 0, Math.max(0, this.level.w * 16 - 400));
     this.camera.y = U.clamp(start.y - 130, 0, 64);
@@ -134,7 +353,7 @@ const Game = {
     } else {
       this.state = 'intro';
       this.introT = 0;
-      this.stageBlurb = L('blurb.' + (i + 1));
+      this.stageBlurb = L(def.blurbKey || ('blurb.' + (i + 1)));
       if (i === 0 && !Save.data.hintSeen) this.hintT = 9;
     }
 
@@ -150,6 +369,11 @@ const Game = {
     this.signs = [];
     this.goals = [];
     this.spawnPos = null;
+    this.drainOn = false;
+    this.drainFront = 0;
+    this.drainStart = 0;
+    this.drainWarned = false;
+    this.bloomLost = false;
 
     for (const s of level.specs) {
       switch (s.kind) {
@@ -183,13 +407,25 @@ const Game = {
         case 'boulder':
           this.enemies.push(new Boulder(s.tx * 16, s.ty * 16, s.dist, s.speed));
           break;
+        case 'husk':
+          this.enemies.push(new Husk(s.tx * 16 + 2, (s.ty + 1) * 16 - 18));
+          break;
         case 'flower':
-        case 'violet': {
+        case 'violet':
+        case 'glint': {
           const pk = new Pickup(s.tx * 16 + 3, s.ty * 16 + 3, s.kind, s);
           if (level.taken.has(s.i)) pk.taken = true;
           this.pickups.push(pk);
           break;
         }
+        case 'shrine':
+          this.shrines.push(new Shrine(s.tx * 16, (s.ty + 1) * 16));
+          break;
+        case 'drain':
+          this.drainOn = true;
+          this.drainStart = s.tx * 16;
+          this.drainFront = s.tx * 16;
+          break;
         case 'checkpoint': {
           const c = new Checkpoint(s.tx * 16 + 2, (s.ty + 1) * 16 - 20);
           c.spec = s;
@@ -251,8 +487,16 @@ const Game = {
     }
     if (Input.pressed.language) LANG.toggle();
 
+    this.updatePointer();
+
     switch (this.state) {
       case 'title': this.updateTitle(dt); break;
+      case 'roadSelect': this.updateRoadSelect(dt); break;
+      case 'settings': this.updateSettings(dt); break;
+      case 'memento': this.updateMemento(dt); break;
+      case 'photoView': this.updatePhotoView(dt); break;
+      case 'keepsake': this.updateKeepsake(dt); break;
+      case 'letter': this.updateLetter(dt); break;
       case 'select': this.updateSelect(dt); break;
       case 'prologue': this.updatePrologue(dt); break;
       case 'intro': this.updateIntro(dt); break;
@@ -270,45 +514,268 @@ const Game = {
     return !!(Input.click && rect && U.pointIn(Input.click.x, Input.click.y, rect));
   },
 
+  /* which button the pointer is resting on, so it can light up */
+  updatePointer() {
+    const p = Input.pointer;
+    this.pointerInPause = !!(this.state === 'playing' && UI.rects.pause
+      && p.x >= 0 && U.pointIn(p.x, p.y, UI.rects.pause));
+
+    let over = null;
+    if (this.state === 'title') {
+      if (p.x >= 0 && UI.rects.titleSettings && U.pointIn(p.x, p.y, UI.rects.titleSettings)) over = 'titleSettings';
+      else if (p.x >= 0 && UI.rects.titleMemento && U.pointIn(p.x, p.y, UI.rects.titleMemento)) over = 'titleMemento';
+    }
+    this.pointerOver = over;
+  },
+
   updateTitle() {
     /* the prologue can be watched again from the title */
     if (Input.pressed.replay) {
       AudioSys.sfx('select');
-      this.startTransition(() => this.startPrologue());
+      this.startTransition(() => this.startPrologue(this.road));
+      return;
+    }
+    if (this.clicked(UI.rects.titleSettings)) {
+      AudioSys.sfx('select');
+      this.startTransition(() => this.startSettings('title'));
+      return;
+    }
+    if (this.clicked(UI.rects.titleMemento)) {
+      AudioSys.sfx('select');
+      this.startTransition(() => this.startMemento('title'));
       return;
     }
     if (Input.pressed.confirm || this.clicked(UI.rects.titleStart)) {
       AudioSys.sfx('select');
-      /* once it has been seen, the road starts at the stage select */
-      if (Save.data.prologueSeen) {
-        this.startTransition(() => this.startSelect());
-      } else {
-        this.startTransition(() => this.startPrologue());
+      this.startTransition(() => this.startRoadSelect());
+    }
+  },
+
+  /* ---------- the road picker ---------- */
+
+  updateRoadSelect(dt) {
+    const roads = this.roadList();
+    if (Input.pressed.left) {
+      this.roadSel = (this.roadSel + roads.length - 1) % roads.length;
+      AudioSys.sfx('blip');
+    }
+    if (Input.pressed.right) {
+      this.roadSel = (this.roadSel + 1) % roads.length;
+      AudioSys.sfx('blip');
+    }
+
+    let chosen = -1;
+    if (UI.rects.roads) {
+      for (const r of UI.rects.roads) {
+        if (this.clicked(r)) chosen = r.i;
       }
+    }
+    if (Input.pressed.confirm && chosen < 0) chosen = this.roadSel;
+    if (chosen >= 0) this.chooseRoad(chosen);
+
+    if (Input.pressed.back) {
+      AudioSys.sfx('blip');
+      this.startTransition(() => { this.state = 'title'; });
+    }
+  },
+
+  /* ---------- settings ---------- */
+
+  updateSettings(dt) {
+    const items = this.settingsItems();
+    if (Input.pressed.up) { this.settingsSel = (this.settingsSel + items.length - 1) % items.length; AudioSys.sfx('blip'); }
+    if (Input.pressed.down) { this.settingsSel = (this.settingsSel + 1) % items.length; AudioSys.sfx('blip'); }
+
+    let pick = -1;
+    for (const r of (UI.rects.menu || [])) if (this.clicked(r)) pick = r.i;
+    if (Input.pressed.confirm && pick < 0) pick = this.settingsSel;
+
+    if (Input.pressed.back) {
+      AudioSys.sfx('blip');
+      const from = this.settingsFrom;
+      this.startTransition(() => this.backTo(from));
+      return;
+    }
+    if (pick < 0) return;
+
+    const act = (items[pick] || {}).act;
+    switch (act) {
+      case 'name':
+        AudioSys.sfx('select');
+        this.openNameEntry();
+        break;
+      case 'language':
+        LANG.set(LANG.current === 'en' ? 'id' : 'en');
+        AudioSys.sfx('blip');
+        break;
+      case 'pace': {
+        const order = ['slow', 'normal', 'fast'];
+        const i = order.indexOf(Save.data.pace);
+        Save.data.pace = order[(i + 1) % order.length];
+        Save.write();
+        AudioSys.sfx('blip');
+        break;
+      }
+      case 'reveal': {
+        Save.data.reveal = Save.data.reveal === 'typed' ? 'instant' : 'typed';
+        Save.write();
+        AudioSys.sfx('blip');
+        break;
+      }
+      case 'sound': {
+        const m = AudioSys.toggle();
+        Save.data.muted = m;
+        Save.write();
+        AudioSys.sfx('blip');
+        break;
+      }
+      case 'reset': {
+        if (!this.resetArmed) {
+          this.resetArmed = true;
+          AudioSys.sfx('blip');
+        } else {
+          this.resetArmed = false;
+          AudioSys.sfx('down');
+          Save.reset();
+          this.startTransition(() => {
+            this.state = 'title';
+            this.road = 'keep';
+            this.hearts = this.maxHearts;
+          });
+        }
+        break;
+      }
+      case 'back':
+        AudioSys.sfx('select');
+        {
+          const from = this.settingsFrom;
+          this.startTransition(() => this.backTo(from));
+        }
+        break;
+      default: break;
+    }
+  },
+
+  /* the name is typed into a real field, so it can hold anything */
+  openNameEntry(from) {
+    const el = document.getElementById('nameInput');
+    if (!el) return;
+    const field = el.querySelector('input');
+    const veil = el;
+    const backState = from || this.state;
+    field.value = Save.data.name || '';
+    veil.classList.add('is-open');
+    field.focus();
+    field.select();
+
+    const close = (ok) => {
+      veil.classList.remove('is-open');
+      field.blur();
+      if (ok) {
+        const v = String(field.value || '').trim().slice(0, 16);
+        Save.data.name = v;
+        Save.write();
+      }
+      this.state = backState;
+      if (Input.canvas) Input.canvas.focus();
+      window.removeEventListener('keydown', onKey, true);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); close(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
+      else { e.stopPropagation(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+  },
+
+  /* ---------- keepsakes ---------- */
+
+  updateMemento(dt) {
+    const n = Photos.MAX + 1;      /* twelve slots and the letter */
+    if (Input.pressed.up) { this.mementoSel = (this.mementoSel + n - 1) % n; AudioSys.sfx('blip'); }
+    if (Input.pressed.down) { this.mementoSel = (this.mementoSel + 1) % n; AudioSys.sfx('blip'); }
+    if (Input.pressed.left) { this.mementoSel = (this.mementoSel + n - 1) % n; AudioSys.sfx('blip'); }
+    if (Input.pressed.right) { this.mementoSel = (this.mementoSel + 1) % n; AudioSys.sfx('blip'); }
+
+    if (Input.pressed.back) {
+      AudioSys.sfx('blip');
+      const from = this.mementoFrom;
+      this.startTransition(() => this.backTo(from));
+      return;
+    }
+
+    if (Input.pressed.confirm) {
+      if (this.mementoSel >= Photos.MAX) {
+        if (this.letterUnlocked()) this.startLetter('memento');
+        else { AudioSys.sfx('locked'); this.msg = { text: L('memento.letterLocked'), t: 2 }; }
+      } else {
+        const idx = this.mementoSel + 1;
+        if (Photos.has(idx)) {
+          this.state = 'photoView';
+          AudioSys.sfx('select');
+        } else {
+          AudioSys.sfx('locked');
+          this.msg = { text: L('memento.notFound'), t: 2 };
+        }
+      }
+    }
+  },
+
+  updatePhotoView(dt) {
+    if (Input.pressed.confirm || Input.pressed.back || Input.pressed.jump) {
+      AudioSys.sfx('blip');
+      this.state = 'memento';
+    }
+  },
+
+  letterUnlocked() {
+    return !!(Save.data.letterSeen || Save.data.keepDone);
+  },
+
+  /* ---------- the letter ---------- */
+
+  updateLetter(dt) {
+    this.letterT += dt;
+    const total = letterChars();
+    const done = this.letterT * 52 >= total;
+
+    if (done && (Input.pressed.confirm || Input.pressed.back || Input.pressed.jump)) {
+      AudioSys.sfx('blip');
+      this.startTransition(() => {
+        if (this.letterFrom === 'memento') this.state = 'memento';
+        else if (this.letterFrom === 'victory') this.state = 'victory';
+        else this.state = 'title';
+      });
     }
   },
 
   updatePrologue(dt) {
     if (this.prologueDone) return;
+    const pro = this.prologueDef || PROLOGUE;
     this.prologueT += dt * this.paceRate();
 
-    const end = PROLOGUE.end;
-    const inLast = this.prologueT >= PROLOGUE.lastStart;
+    const end = pro.end;
+    const inLast = this.prologueT >= pro.lastStart;
 
     if (Input.pressed.back) {
       this.prologueT = end;
       this.prologueDone = true;
       AudioSys.sfx('blip');
     } else if (Input.pressed.confirm || Input.pressed.jump) {
-      this.prologueT = inLast ? end : PROLOGUE.nextSceneTime(this.prologueT);
+      this.prologueT = inLast ? end : pro.nextSceneTime(this.prologueT);
       this.prologueDone = inLast;
       AudioSys.sfx('blip');
     }
 
     /* the beast calls out of the dark as it rises */
-    if (this.prologueT >= PROLOGUE.sceneStart('shadow') + 1.9 && !this.roared) {
+    if (this.prologueRoad === 'finn' && this.prologueT >= pro.sceneStart('shadow') + 1.9 && !this.roared) {
       this.roared = true;
       AudioSys.sfx('roar');
+    }
+    /* her side of the night: the briar opens */
+    if (this.prologueRoad === 'keep' && this.prologueT >= pro.sceneStart('keepShadow') + 1.9 && !this.roared) {
+      this.roared = true;
+      AudioSys.sfx('thunder');
     }
 
     /* the last panel waits for the player, but never traps them */
@@ -319,19 +786,21 @@ const Game = {
     if (this.prologueT > end) this.prologueT = end;
 
     if (this.prologueDone) {
-      Save.data.prologueSeen = true;
+      if (this.prologueRoad === 'keep') Save.data.keepPrologueSeen = true;
+      else Save.data.prologueSeen = true;
       Save.write();
       this.startTransition(() => this.startSelect());
     }
   },
 
   updateSelect() {
+    const c = this.campaign();
     if (Input.pressed.left) {
       this.selectSel = Math.max(0, this.selectSel - 1);
       AudioSys.sfx('blip');
     }
     if (Input.pressed.right) {
-      this.selectSel = Math.min(STAGES.length - 1, this.selectSel + 1);
+      this.selectSel = Math.min(c.length - 1, this.selectSel + 1);
       AudioSys.sfx('blip');
     }
 
@@ -344,7 +813,7 @@ const Game = {
     if (Input.pressed.confirm && chosen < 0) chosen = this.selectSel;
 
     if (chosen >= 0) {
-      if (chosen + 1 > Save.data.unlocked) {
+      if (chosen + 1 > this.unlockedCount()) {
         AudioSys.sfx('locked');
         this.msg = { text: L('toast.barred'), t: 2 };
       } else {
@@ -356,7 +825,7 @@ const Game = {
 
     if (Input.pressed.back) {
       AudioSys.sfx('blip');
-      this.startTransition(() => { this.state = 'title'; });
+      this.startTransition(() => { this.state = 'roadSelect'; });
     }
   },
 
@@ -380,16 +849,26 @@ const Game = {
 
   updateWorld(dt) {
     const p = this.player;
+    const p2 = this.player2;
 
     /* platforms move first; carry the rider */
     for (const plat of this.platforms) plat.update(dt);
-    if (p.riding && !p.riding.gone) {
-      p.x += p.riding.x - p.riding.prevX;
-      p.y += p.riding.y - p.riding.prevY;
+
+    /* both players, one after the other */
+    const crew = p2 ? [p, p2] : [p];
+    for (const who of crew) {
+      /* a moving ledge carries its rider; her own flowers stand still */
+      if (who.riding && who.riding.prevX !== undefined) {
+        who.x += who.riding.x - who.riding.prevX;
+        who.y += who.riding.y - who.riding.prevY;
+      }
+      who.update(dt, this);
+      if (this.state !== 'playing') return;
     }
 
-    p.update(dt, this);
-    if (this.state !== 'playing') return;
+    /* her flowers */
+    for (const b of this.blooms) b.update(dt, this);
+    for (const s of this.shrines) s.update(dt);
 
     for (const e of this.enemies) {
       if (e.dead) continue;
@@ -398,6 +877,25 @@ const Game = {
     if (this.state !== 'playing') return;
 
     this.resolveContact();
+    if (this.state !== 'playing') return;
+
+    /* the warmth comes back on its own, slowly */
+    if (this.warmth < this.maxWarmth) {
+      this.warmthT += dt;
+      if (this.warmthT >= 2.4) {
+        this.warmthT = 0;
+        this.warmth++;
+        AudioSys.sfx('light');
+      }
+    } else {
+      this.warmthT = 0;
+    }
+
+    /* the colour draining out of the nettle road */
+    this.updateDrain(dt);
+
+    /* the thread that holds the two of them together */
+    this.updateThread(dt);
 
     for (const pk of this.pickups) pk.update(dt, this);
 
@@ -408,6 +906,9 @@ const Game = {
     for (const g of this.goals) {
       if (U.overlap(p, g.box)) { this.reachGoal(); return; }
     }
+
+    /* the shrine takes three of her own flowers */
+    this.updateShrines();
 
     if (this.msg) {
       this.msg.t -= dt;
@@ -426,6 +927,287 @@ const Game = {
     this.updateCamera(dt);
   },
 
+  /* ---------- the west road: warmth, flowers, shrines ---------- */
+
+  /* she presses a marigold into the ground at her feet */
+  plantBloom(p) {
+    if (this.warmth <= 0) {
+      AudioSys.sfx('locked');
+      this.msg = { text: L('toast.warmth'), t: 2.2 };
+      return;
+    }
+
+    /* The surface she is standing on: a flower of her own, a ledge, or the
+       ground. When she is in the air the flower opens where she is, so a
+       jump and a plant can carry her up the briar. */
+    let gy = null;
+
+    if (p.riding) {
+      gy = p.riding.y + p.riding.h;
+    } else if (p.onGround) {
+      const tx = Math.floor(p.cx / 16);
+      for (let ty = Math.floor((p.y + p.h) / 16); ty < this.level.h; ty++) {
+        if (this.level.solidAt(tx, ty)) { gy = ty * 16; break; }
+      }
+    }
+    if (gy === null) gy = p.y + p.h;
+
+    const b = new Bloom(Math.round(p.cx - 8), gy, p);
+    this.blooms.push(b);
+    this.warmth--;
+    AudioSys.sfx('bloom');
+    this.burst(b.x + 8, gy - 4, PAL.marigold, 10, 70, 0.5, 'spark');
+    this.burst(b.x + 8, gy - 4, PAL.goldLight, 6, 50, 0.4, 'spark');
+    this.msg = { text: L('toast.planted'), t: 1.3 };
+  },
+
+  /* she takes one back, and the warmth returns with it */
+  reclaimBloom(p) {
+    let best = null;
+    let bd = 1e9;
+    for (const b of this.blooms) {
+      if (b.dead || b.anchored) continue;
+      const dx = b.cx - p.cx;
+      const dy = b.baseY - (p.y + p.h);
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= 24 && d < bd) { bd = d; best = b; }
+    }
+    if (!best) {
+      AudioSys.sfx('locked');
+      return;
+    }
+    best.dead = true;
+    const i = this.blooms.indexOf(best);
+    if (i >= 0) this.blooms.splice(i, 1);
+    this.warmth = Math.min(this.maxWarmth, this.warmth + 1);
+    AudioSys.sfx('pickup');
+    this.burst(best.x + 8, best.baseY - 4, PAL.marigold, 8, 60, 0.4, 'spark');
+    this.msg = { text: L('toast.uprooted'), t: 1.6 };
+  },
+
+  /* a flower that has gone over */
+  onBloomFaded(b) {
+    const i = this.blooms.indexOf(b);
+    if (i >= 0) this.blooms.splice(i, 1);
+    /* in the hall of the Old Bloom the dark takes the gap she leaves */
+    this.bloomLost = true;
+  },
+
+  /* the shrine fills, and the chapter ends */
+  updateShrines() {
+    if (!this.shrines.length) return;
+    for (const s of this.shrines) {
+      if (s.done) continue;
+      for (const b of this.blooms) {
+        if (b.dead || b.anchored) continue;
+        if (s.tryFill(b)) {
+          AudioSys.sfx('shrine');
+          this.msg = { text: L('toast.shrine'), t: 2 };
+          this.burst(b.x + 8, b.baseY - 6, PAL.goldLight, 12, 90, 0.5, 'spark');
+        }
+      }
+    }
+
+    const s = this.shrines.find(function (sh) { return sh.done; });
+    if (!s) return;
+
+    /* in co-op the shrine only opens when both of them are there */
+    if (this.player2) {
+      const a = Math.abs(this.player.cx - (s.x + 28));
+      const b = Math.abs(this.player2.cx - (s.x + 28));
+      if (a > 150 || b > 150) {
+        if (!this.msg || this.msg.text !== L('toast.thread')) {
+          this.msg = { text: L('toast.thread'), t: 1.4 };
+        }
+        return;
+      }
+    }
+
+    this.completeChapter();
+  },
+
+  completeChapter() {
+    if (this.state !== 'playing') return;
+    const c = this.campaign();
+    const i = this.stageIndex;
+
+    /* bank the marigolds */
+    if (this.road === 'keep') {
+      Save.data.keepBest[i] = Math.max(Save.data.keepBest[i] || 0, this.stageFlowers);
+      Save.clearedChapter(i);
+    } else if (this.road === 'finn') {
+      Save.data.best[i] = Math.max(Save.data.best[i] || 0, this.stageFlowers);
+    }
+    Save.data.flowers += this.stageFlowers;
+    Save.write();
+
+    AudioSys.sfx('win');
+
+    if (i < c.length - 1) {
+      if (this.road === 'keep') Save.data.keepUnlocked = Math.max(Save.data.keepUnlocked, i + 2);
+      else if (this.road === 'finn') Save.data.unlocked = Math.max(Save.data.unlocked, i + 2);
+      Save.write();
+
+      /* a keepsake waits between the chapters */
+      const keep = this.keepsakeFor(i);
+      if (keep) {
+        this.state = 'keepsake';
+        this.keepsakeIdx = keep;
+        this.keepsakeNext = () => this.enterStage(i + 1);
+        AudioSys.stopMusic();
+        AudioSys.sfx('glint');
+        return;
+      }
+
+      this.startTransition(() => this.enterStage(i + 1));
+      return;
+    }
+
+    /* the end of the road */
+    if (this.road === 'coop') {
+      Save.data.coopDone = true;
+      Save.write();
+      const keep = this.keepsakeFor(5);
+      if (keep) {
+        this.state = 'keepsake';
+        this.keepsakeIdx = keep;
+        this.keepsakeNext = () => {
+          this.state = 'victory';
+          this.time = 0;
+          AudioSys.stopMusic();
+          AudioSys.playMusic('dawn');
+        };
+        AudioSys.stopMusic();
+        AudioSys.sfx('glint');
+        return;
+      }
+      this.state = 'victory';
+      this.time = 0;
+      AudioSys.stopMusic();
+      AudioSys.playMusic('dawn');
+      return;
+    }
+    if (this.road === 'finn') {
+      Save.data.unlocked = Save.SLOTS;
+      Save.write();
+      this.state = 'rescue';
+      this.rescueT = 0;
+      AudioSys.stopMusic();
+      return;
+    }
+
+    /* her road ends at the heart of the briar */
+    Save.data.keepDone = true;
+    Save.write();
+    this.state = 'epilogue';
+    this.epilogueT = 0;
+    AudioSys.playMusic('dawn');
+  },
+
+  /* the keepsake that comes after chapter number n (one based), if there is one */
+  keepsakeFor(n) {
+    const idx = n + 1;
+    if (idx < 1 || idx > Photos.MAX) return 0;
+    if (!Photos.cards[idx]) return 0;
+    if (!Photos.unlocked(idx)) return 0;
+    return idx;
+  },
+
+  /* ---------- the keepsake between chapters ---------- */
+
+  updateKeepsake(dt) {
+    if (!Input.pressed.confirm && !Input.pressed.jump && !Input.pressed.back) return;
+    AudioSys.sfx('select');
+    Save.sawPhoto(this.keepsakeIdx);
+    const next = this.keepsakeNext;
+    this.keepsakeIdx = 0;
+    this.keepsakeNext = null;
+    if (next) this.startTransition(() => next());
+    else this.startTransition(() => { this.state = 'title'; });
+  },
+
+  /* ---------- the drain ---------- */
+
+  updateDrain(dt) {
+    if (!this.drainOn) return;
+    const def = this.campaignDef();
+    const speed = def.drainSpeed || 24;
+    const p = this.player;
+
+    if (def.drainMode === 'bloom') {
+      /* The hall of the Old Bloom: the dark creeps, and every flower of hers
+         that goes out lets it take a step closer. A living flower holds it
+         where it is - the light she leaves behind keeps the briar back. */
+      if (this.bloomLost) {
+        this.bloomLost = false;
+        this.drainFront += 48;
+        this.shake = Math.max(this.shake, 3);
+        AudioSys.sfx('down');
+      }
+      this.drainFront += speed * dt;
+
+      let hold = null;
+      for (const b of this.blooms) {
+        if (b.dead || b.anchored) continue;
+        if (hold === null || b.x < hold) hold = b.x;
+      }
+      if (hold !== null && this.drainFront > hold) this.drainFront = hold;
+
+      this.drainWarn();
+      this.drainTouch(p);
+      return;
+    }
+
+    /* The nettle road: the colour drains out of the road behind her. It
+       waits at the edge until she is properly on the way, then it creeps
+       east on its own - stop moving and it will find her. */
+    if (p.cx > this.drainStart + 400) this.drainFront += speed * dt;
+
+    this.drainWarn();
+    this.drainTouch(p);
+  },
+
+  /* a nudge when the dark is close */
+  drainWarn() {
+    if (this.drainWarned) return;
+    if (this.player.cx - this.drainFront < 150) {
+      this.drainWarned = true;
+      this.msg = { text: L('toast.drain'), t: 2.4 };
+    }
+  },
+
+  /* and it bites when it reaches her */
+  drainTouch(p) {
+    if (p.cx - 12 < this.drainFront) {
+      this.hurtPlayer(1, this.drainFront - 10, p.cy);
+    }
+  },
+
+  /* ---------- the thread ---------- */
+
+  updateThread(dt) {
+    if (!this.player2) return;
+    this.threadT += dt;
+    const d = Math.abs(this.player.cx - this.player2.cx);
+    const far = d > 120;
+
+    if (far && !this.threadCut) {
+      this.threadCut = true;
+      AudioSys.sfx('down');
+      this.msg = { text: L('toast.threadCut'), t: 2.2 };
+      this.shake = Math.max(this.shake, 3);
+      /* the flowers go out while the thread is dark */
+      for (const b of this.blooms) {
+        if (b.anchored) continue;
+        b.dead = true;
+      }
+      this.blooms = this.blooms.filter(function (b) { return b.anchored; });
+    } else if (!far && this.threadCut) {
+      this.threadCut = false;
+      this.msg = { text: L('toast.thread'), t: 1.8 };
+    }
+  },
+
   scanSigns() {
     const p = this.player;
     for (const s of this.signs) {
@@ -437,8 +1219,12 @@ const Game = {
   },
 
   resolveContact() {
-    const p = this.player;
-    if (p.invuln > 0 || p.dead) return;
+    this.contactFor(this.player);
+    if (this.player2) this.contactFor(this.player2);
+  },
+
+  contactFor(p) {
+    if (!p || p.invuln > 0 || p.dead) return;
     for (const e of this.enemies) {
       if (e.dead || e.state === 'burst') continue;
       if (!U.overlap(p, e)) continue;
@@ -458,7 +1244,7 @@ const Game = {
         p.vx = -p.facing * 45;
         p.vy = Math.min(p.vy, 0);
       } else {
-        this.hurtPlayer(e.damage || 1, e.cx, e.cy);
+        this.hurtPlayer(e.damage || 1, e.cx, e.cy, p);
       }
       if (this.state !== 'playing') return;
     }
@@ -524,6 +1310,14 @@ const Game = {
         LANG.set(LANG.current === 'en' ? 'id' : 'en');
         AudioSys.sfx('blip');
         break;
+      case 'memento':
+        AudioSys.sfx('select');
+        this.startMemento('pause');
+        break;
+      case 'name':
+        AudioSys.sfx('select');
+        this.openNameEntry();
+        break;
       case 'quit':
         AudioSys.sfx('down');
         this.startTransition(() => {
@@ -557,9 +1351,15 @@ const Game = {
 
   updateEpilogue(dt) {
     this.epilogueT += dt;
-    if (this.epilogueT > 23.5) {
+    const end = (this.road === 'keep') ? 25.4 : 23.5;
+    if (this.epilogueT > end) {
       /* write the finish */
-      Save.data.unlocked = STAGES.length;
+      if (this.road === 'keep') {
+        Save.data.keepDone = true;
+        Save.data.keepUnlocked = Save.SLOTS;
+      } else {
+        Save.data.unlocked = Save.SLOTS;
+      }
       Save.write();
       this.state = 'victory';
       this.time = 0;
@@ -569,6 +1369,12 @@ const Game = {
   },
 
   updateVictory() {
+    const canLetter = this.road === 'keep' && this.letterUnlocked();
+    if (canLetter && (Input.pressed.confirm || this.clicked(UI.rects.victoryExit))) {
+      AudioSys.sfx('select');
+      this.startLetter('victory');
+      return;
+    }
     if (Input.pressed.confirm || Input.pressed.back || this.clicked(UI.rects.victoryExit)) {
       AudioSys.sfx('select');
       this.startTransition(() => {
@@ -615,9 +1421,9 @@ const Game = {
     }
   },
 
-  hurtPlayer(n, fromX, fromY) {
+  hurtPlayer(n, fromX, fromY, target) {
     if (this.state !== 'playing') return;
-    const p = this.player;
+    const p = target || this.player;
     if (p.invuln > 0) return;
 
     this.hearts -= n;
@@ -633,26 +1439,55 @@ const Game = {
     p.vx = dir * 150;
     p.vy = -205;
 
+    /* the keeper's oldest flower goes out when she is hurt */
+    if (p.prof && p.prof.grow) this.witherOldestBloom();
+
+    /* the other one feels it too */
+    const other = (p === this.player) ? this.player2 : this.player;
+    if (other && !other.dead) {
+      other.invuln = Math.max(other.invuln, 0.9);
+    }
+
     if (this.hearts <= 0) this.die();
   },
 
-  drown() {
+  /* the oldest flower she planted goes over */
+  witherOldestBloom() {
+    let oldest = null;
+    for (const b of this.blooms) {
+      if (b.dead || b.anchored) continue;
+      if (!oldest || b.age > oldest.age) oldest = b;
+    }
+    if (!oldest) return;
+    oldest.dead = true;
+    const i = this.blooms.indexOf(oldest);
+    if (i >= 0) this.blooms.splice(i, 1);
+    this.bloomLost = true;
+    this.burst(oldest.x + 8, oldest.baseY - 4, PAL.stoneDark, 8, 60, 0.45, 'chip');
+  },
+
+  drown(target) {
     if (this.state !== 'playing') return;
-    const p = this.player;
+    const p = target || this.player;
     if (p.invuln > 0.05) return;
     this.hearts--;
     AudioSys.sfx('hurt');
     if (this.hearts <= 0) { this.die(); return; }
 
     const cp = this.checkpointPos || this.spawnPos;
-    p.x = cp.x;
-    p.y = cp.y;
-    p.vx = 0;
-    p.vy = 0;
-    p.invuln = 1.6;
-    p.hurtTimer = 0;
-    p.attackT = -1;
-    p.riding = null;
+    for (const who of [this.player, this.player2]) {
+      if (!who) continue;
+      who.x = cp.x + (who === this.player2 ? 20 : 0);
+      who.y = cp.y;
+      who.vx = 0;
+      who.vy = 0;
+      who.invuln = 1.6;
+      who.hurtTimer = 0;
+      who.attackT = -1;
+      who.riding = null;
+    }
+    /* the colour comes back with her */
+    if (this.drainOn) this.drainFront = Math.min(this.drainFront, cp.x - 200);
     this.freeze = 0.1;
     this.shake = 3;
     this.msg = { text: L('toast.drown'), t: 2.5 };
@@ -665,28 +1500,46 @@ const Game = {
     if (this.state === 'dead') return;
     this.state = 'dead';
     this.deadT = 0;
-    this.player.dead = true;
-    this.player.vx = 0;
+    if (this.player) {
+      this.player.dead = true;
+      this.player.vx = 0;
+      this.burst(this.player.cx, this.player.cy, PAL.rose, 16, 140, 0.7, 'spark');
+      this.burst(this.player.cx, this.player.cy, PAL.white, 8, 100, 0.6, 'spark');
+    }
+    if (this.player2) {
+      this.player2.dead = true;
+      this.player2.vx = 0;
+      this.burst(this.player2.cx, this.player2.cy, PAL.rose, 12, 120, 0.6, 'spark');
+    }
     AudioSys.sfx('down');
     this.shake = 6;
-    this.burst(this.player.cx, this.player.cy, PAL.rose, 16, 140, 0.7, 'spark');
-    this.burst(this.player.cx, this.player.cy, PAL.white, 8, 100, 0.6, 'spark');
   },
 
   reachGoal() {
     if (this.state !== 'playing') return;
     AudioSys.sfx('door');
 
-    if (this.stageIndex < STAGES.length - 1) {
+    const c = this.campaign();
+    const i = this.stageIndex;
+
+    if (i < c.length - 1) {
       /* bank the flowers */
-      const i = this.stageIndex;
-      Save.data.best[i] = Math.max(Save.data.best[i] || 0, this.stageFlowers);
-      Save.data.unlocked = Math.max(Save.data.unlocked, i + 2);
+      if (this.road === 'keep') {
+        Save.data.keepBest[i] = Math.max(Save.data.keepBest[i] || 0, this.stageFlowers);
+        Save.data.keepUnlocked = Math.max(Save.data.keepUnlocked, i + 2);
+      } else if (this.road === 'finn') {
+        Save.data.best[i] = Math.max(Save.data.best[i] || 0, this.stageFlowers);
+        Save.data.unlocked = Math.max(Save.data.unlocked, i + 2);
+      }
+      Save.data.flowers += this.stageFlowers;
       Save.write();
       this.startTransition(() => this.enterStage(i + 1));
     } else {
-      Save.data.best[this.stageIndex] = Math.max(Save.data.best[this.stageIndex] || 0, this.stageFlowers);
-      Save.data.unlocked = STAGES.length;
+      if (this.road === 'finn') {
+        Save.data.best[i] = Math.max(Save.data.best[i] || 0, this.stageFlowers);
+        Save.data.unlocked = Save.SLOTS;
+      }
+      Save.data.flowers += this.stageFlowers;
       Save.write();
       this.state = 'rescue';
       this.rescueT = 0;
@@ -751,6 +1604,12 @@ const Game = {
 
     switch (this.state) {
       case 'title': UI.title(ctx, this); break;
+      case 'roadSelect': UI.roadSelect(ctx, this); break;
+      case 'settings': UI.settings(ctx, this); break;
+      case 'memento': UI.memento(ctx, this); break;
+      case 'photoView': UI.photoView(ctx, this); break;
+      case 'keepsake': UI.keepsake(ctx, this); break;
+      case 'letter': UI.letter(ctx, this); break;
       case 'select': UI.select(ctx, this); break;
       case 'prologue': UI.prologue(ctx, this); break;
       case 'intro':
@@ -821,9 +1680,84 @@ const Game = {
       if (e.dead) continue;
       if (e.x > left && e.x < right) e.draw(ctx, this);
     }
+
+    /* the shrines, and the flowers in them */
+    for (const s of this.shrines) {
+      if (s.x > left && s.x < right) s.draw(ctx, this);
+    }
+    for (const b of this.blooms) {
+      if (b.x > left && b.x < right) b.draw(ctx, this);
+    }
+
+    /* the golden thread between the two of them */
+    if (this.player2) this.drawThread(ctx);
+
     if (this.player && this.state !== 'intro') this.player.draw(ctx, this);
+    if (this.player2 && this.state !== 'intro') this.player2.draw(ctx, this);
+
+    /* the colour draining out of the road */
+    if (this.drainOn) this.drawDrain(ctx);
 
     this.drawParticles(ctx);
+
+    ctx.restore();
+  },
+
+  /* the thread of gold that holds them together */
+  drawThread(ctx) {
+    const a = this.player;
+    const b = this.player2;
+    const ax = a.cx, ay = a.cy - 4;
+    const bx = b.cx, by = b.cy - 4;
+    const steps = Math.max(2, Math.round(Math.abs(bx - ax) / 5));
+    const cut = this.threadCut;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = ax + (bx - ax) * t;
+      const y = ay + (by - ay) * t + Math.sin(t * Math.PI) * -10;
+      const flick = cut ? (Math.floor(this.time * 12) % 2 === 0) : (0.55 + Math.sin(this.time * 3 + t * 6) * 0.25);
+      if (flick <= 0.02) continue;
+      ctx.globalAlpha = Math.min(1, flick);
+      ctx.fillStyle = cut ? PAL.stoneDark : PAL.goldLight;
+      ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  /* the briar taking the colour out of the road */
+  drawDrain(ctx) {
+    const x = Math.round(this.drainFront);
+    if (x < -40) return;
+    const cam = this.camera;
+
+    ctx.save();
+    ctx.translate(-cam.x, -cam.y);
+
+    /* the drained part of the road goes grey and cold */
+    const left = cam.x - 20;
+    const w = Math.max(0, x - left);
+    if (w > 0) {
+      ctx.fillStyle = 'rgba(24,22,34,0.55)';
+      ctx.fillRect(left, cam.y - 40, w, 320);
+      ctx.fillStyle = 'rgba(60,52,70,0.35)';
+      ctx.fillRect(left, cam.y - 40, w, 320);
+    }
+
+    /* the edge itself: a ragged line of thorns */
+    ctx.fillStyle = PAL.inkDeep;
+    for (let i = 0; i < 8; i++) {
+      const yy = cam.y - 30 + i * 34;
+      const wob = Math.sin(this.time * 2 + i) * 2;
+      ctx.fillRect(x - 4 + wob, yy, 5, 34);
+    }
+    ctx.fillStyle = PAL.leafDark;
+    for (let i = 0; i < 8; i++) {
+      const yy = cam.y - 30 + i * 34;
+      const wob = Math.sin(this.time * 2 + i) * 2;
+      ctx.fillRect(x - 2 + wob, yy + 6, 3, 2);
+      ctx.fillRect(x + 1 + wob, yy + 20, 2, 2);
+    }
 
     ctx.restore();
   }
